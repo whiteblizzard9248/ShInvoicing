@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ShInvoicing.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="ShInvoicing.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ShInvoicing">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <Button Content="Load Excel File" Command="{Binding LoadExcelFileCommand}" Margin="0,0,10,0"/>
+            <Button Content="Generate PDF" Command="{Binding GeneratePdfCommand}" IsEnabled="{Binding SelectedInvoice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*">
+            <ListBox Grid.Column="0" ItemsSource="{Binding Invoices}" SelectedItem="{Binding SelectedInvoice}" Margin="10">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding InvoiceNo}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <DataGrid Grid.Column="1" ItemsSource="{Binding SelectedInvoice.Items}" Margin="10" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                    <DataGridTextColumn Header="HSN/SAC" Binding="{Binding HSNSACCode}" Width="100"/>
+                    <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="80"/>
+                    <DataGridTextColumn Header="Rate" Binding="{Binding Rate}" Width="80"/>
+                    <DataGridTextColumn Header="Taxable Value" Binding="{Binding TaxableValue}" Width="100"/>
+                    <DataGridTextColumn Header="CGST Amount" Binding="{Binding CGSTAmount}" Width="100"/>
+                    <DataGridTextColumn Header="SGST Amount" Binding="{Binding SGSTAmount}" Width="100"/>
+                    <DataGridTextColumn Header="IGST Amount" Binding="{Binding IGSTAmount}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Margin="10" FontWeight="Bold"/>
+    </Grid>
+
+</Window>
