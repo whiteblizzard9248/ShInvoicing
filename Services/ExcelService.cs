@@ -50,29 +50,35 @@ public class ExcelService
             if (invoicesSheet != null)
             {
                 // Parse Vendor metadata (Rows 1-5)
-                foreach (var row in invoicesSheet.Rows(1, 5))
+                for (int r = 1; r <= 5; r++)
                 {
-                    var label = GetStringValue(row.Cell(1));
-                    int targetCol = label switch
-                    {
-                        "GSTIN" or "PAN No" => 4,
-                        "A/C No" or "IFSC" => 9,
-                        _ => 2
-                    };
+                    var row = invoicesSheet.Row(r);
 
-                    var val = GetStringValue(row.Cell(targetCol));
-                    _ = label switch
+                    for (int c = 1; c <= 10; c++)
                     {
-                        "Vendor Name" => settings.VendorName = val,
-                        "Vendor Address" => settings.VendorAddress = val,
-                        "Mobile Number" => settings.MobileNumber = val,
-                        "Email" => settings.Email = val,
-                        "GSTIN" => settings.GSTIN = val,
-                        "PAN No" => settings.PANNo = val,
-                        "A/C No" => settings.BankAccountNo = val,
-                        "IFSC" => settings.IFSC = val,
-                        _ => null
-                    };
+                        var label = GetStringValue(row.Cell(c));
+                        if (string.IsNullOrWhiteSpace(label))
+                            continue;
+
+                        var value = GetStringValue(row.Cell(c + 1));
+
+                        var map = new Dictionary<string, Action<string>>
+                        {
+                            ["Vendor Name"] = v => settings.VendorName = v,
+                            ["Vendor Address"] = v => settings.VendorAddress = v,
+                            ["Mobile Number"] = v => settings.MobileNumber = v,
+                            ["Email"] = v => settings.Email = v,
+                            ["GSTIN"] = v => settings.GSTIN = v,
+                            ["PAN No"] = v => settings.PANNo = v,
+                            ["A/C No"] = v => settings.BankAccountNo = v,
+                            ["IFSC"] = v => settings.IFSC = v
+                        };
+
+                        if (map.TryGetValue(label, out var setter))
+                        {
+                            setter(value);
+                        }
+                    }
                 }
 
                 // Parse Invoice table (Starting from Row 8)
@@ -82,13 +88,13 @@ public class ExcelService
                     if (string.IsNullOrWhiteSpace(invNo)) continue;
 
                     var groupedItems = invoiceItems
-    .Where(i => !string.IsNullOrWhiteSpace(i.InvoiceNo)) // avoid null keys
-    .GroupBy(i => Normalize(i.InvoiceNo), StringComparer.OrdinalIgnoreCase)
-    .ToDictionary(
-        g => g.Key,
-        g => g.ToList(),
-        StringComparer.OrdinalIgnoreCase
-    );
+                        .Where(i => !string.IsNullOrWhiteSpace(i.InvoiceNo)) // avoid null keys
+                        .GroupBy(i => Normalize(i.InvoiceNo), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.ToList(),
+                            StringComparer.OrdinalIgnoreCase
+                        );
 
                     var key = Normalize(invNo);
 

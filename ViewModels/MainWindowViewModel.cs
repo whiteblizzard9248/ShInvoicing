@@ -112,10 +112,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public decimal TotalSGST => InvoiceItems.Sum(i => i.SGSTAmount);
     public decimal TotalIGST => InvoiceItems.Sum(i => i.IGSTAmount);
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
+
 
     public MainWindowViewModel()
     {
@@ -162,11 +159,7 @@ public partial class MainWindowViewModel : ViewModelBase
             VendorSettings.IFSC = loadedSettings.IFSC;
             VendorSettings.MobileNumber = loadedSettings.MobileNumber;
             VendorSettings.Email = loadedSettings.Email;
-            VendorSettings.LogoPath = loadedSettings.LogoPath;
             VendorSettings.Address = loadedSettings.Address;
-
-            // Load optional customizations (logo path, template, colors) from branding.json if available
-            LoadOptionalCustomizations();
 
             StatusMessage = $"Loaded {loadedInvoices.Count} invoices from {filePath}.";
         }
@@ -178,30 +171,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private List<Invoice> _allFilteredInvoices = [];
 
-    private void LoadOptionalCustomizations()
-    {
-        var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "branding.json");
-        if (File.Exists(settingsPath))
-        {
-            try
-            {
-                var json = File.ReadAllText(settingsPath);
-                var saved = JsonSerializer.Deserialize<VendorSettings>(json);
-                if (saved != null)
-                {
-                    // Only restore optional customizations, not vendor details from Excel
-                    if (!string.IsNullOrWhiteSpace(saved.LogoPath))
-                        VendorSettings.LogoPath = saved.LogoPath;
-                    if (!string.IsNullOrWhiteSpace(saved.Address))
-                        VendorSettings.Address = saved.Address;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("Error loading customizations from branding.json: {Message}", ex.Message);
-            }
-        }
-    }
+
 
     partial void OnSearchQueryChanged(string value)
     {
@@ -407,7 +377,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         var outputFolder = string.IsNullOrWhiteSpace(VendorSettings.Address)
-            ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             : VendorSettings.Address;
 
         if (!Directory.Exists(outputFolder))
@@ -427,72 +397,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public void ToggleVendorDetails()
     {
         IsVendorDetailsVisible = !IsVendorDetailsVisible;
-    }
-
-    [RelayCommand]
-    public void SaveVendorSettings()
-    {
-        try
-        {
-            // Only save customizations (not vendor details which come from Excel)
-            var customizations = new VendorSettings
-            {
-                LogoPath = VendorSettings.LogoPath,
-                Address = VendorSettings.Address,
-            };
-
-            var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "branding.json");
-            var json = JsonSerializer.Serialize(customizations, JsonOptions);
-            File.WriteAllText(settingsPath, json);
-            StatusMessage = "Customizations saved to branding.json.";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error saving customizations: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    public async Task BrowseLogoPathAsync()
-    {
-        if (Window?.StorageProvider is not { } provider) return;
-
-        var files = await provider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Select Vendor Logo",
-            AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType("Image Files")
-                {
-                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.svg"],
-                    MimeTypes = ["image/png", "image/jpeg", "image/svg+xml"]
-                }
-            ]
-        });
-
-        if (files.Count > 0)
-        {
-            VendorSettings.LogoPath = files[0].Path.LocalPath;
-            StatusMessage = "Logo path set.";
-        }
-    }
-
-    [RelayCommand]
-    public async Task BrowseDownloadPathAsync()
-    {
-        if (Window?.StorageProvider is not { } provider) return;
-
-        var folders = await provider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Select Output Folder"
-        });
-
-        if (folders.Count > 0)
-        {
-            VendorSettings.Address = folders[0].Path.LocalPath;
-            StatusMessage = "Download folder set.";
-        }
     }
 
 

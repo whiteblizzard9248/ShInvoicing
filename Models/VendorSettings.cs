@@ -1,25 +1,16 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace ShInvoicing.Models;
 
-public class VendorSettings
+public partial class VendorSettings : ObservableObject
 {
-
-    public string? LogoPath { get; set; }
-
-    public string? Address { get; set; }
-
-    public string? VendorName { get; set; }
-
-    public string? VendorAddress { get; set; }
-
-    public string? GSTIN { get; set; }
-
-    public string? PANNo { get; set; }
-
-    public string? BankAccountNo { get; set; }
-
-    public string? IFSC { get; set; }
-
-    public string? MobileNumber { get; set; }
-
-    public string? Email { get; set; }
+    [ObservableProperty] private string? vendorName;
+    [ObservableProperty] private string? vendorAddress;
+    [ObservableProperty] private string? gSTIN;
+    [ObservableProperty] private string? pANNo;
+    [ObservableProperty] private string? bankAccountNo;
+    [ObservableProperty] private string? iFSC;
+    [ObservableProperty] private string? mobileNumber;
+    [ObservableProperty] private string? email;
+    [ObservableProperty] private string? address;
 }

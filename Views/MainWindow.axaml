@@ -38,9 +38,6 @@
                 <Button Content="Generate PDF"
                         Command="{Binding GeneratePdfCommand}"
                         IsEnabled="{Binding SelectedInvoice, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                <Button Content="Save Vendor"
-                        Command="{Binding SaveVendorSettingsCommand}"
-                        Margin="10,0,0,0" />
                 <Button Content="{Binding VendorDetailsToggleText}"
                         Command="{Binding ToggleVendorDetailsCommand}"
                         Margin="10,0,0,0" />
@@ -57,103 +54,74 @@
                                FontSize="14"
                                FontWeight="Bold"
                                Margin="0,0,0,8" />
-                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto"
-                          RowDefinitions="Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*"
+                          RowDefinitions="Auto,Auto,Auto"
+                          ColumnSpacing="16"
+                          RowSpacing="6">
+                        <!-- Row 1 -->
                         <TextBlock Grid.Column="0"
                                    Grid.Row="0"
                                    Text="Vendor Name:"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0" />
-                        <TextBox Grid.Column="1"
-                                 Grid.Row="0"
-                                 Text="{Binding VendorSettings.VendorName, Mode=TwoWay}" />
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="0"
+                                   Text="{Binding VendorSettings.VendorName}"
+                                   TextWrapping="Wrap" />
                         <TextBlock Grid.Column="2"
                                    Grid.Row="0"
                                    Text="GSTIN:"
-                                   VerticalAlignment="Center"
-                                   Margin="8,0,4,0" />
-                        <TextBox Grid.Column="3"
-                                 Grid.Row="0"
-                                 Text="{Binding VendorSettings.GSTIN, Mode=TwoWay}" />
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3"
+                                   Grid.Row="0"
+                                   Text="{Binding VendorSettings.GSTIN}" />
                         <TextBlock Grid.Column="4"
                                    Grid.Row="0"
                                    Text="PAN:"
-                                   VerticalAlignment="Center"
-                                   Margin="8,0,4,0" />
-                        <TextBox Grid.Column="5"
-                                 Grid.Row="0"
-                                 Text="{Binding VendorSettings.PANNo, Mode=TwoWay}" />
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="5"
+                                   Grid.Row="0"
+                                   Text="{Binding VendorSettings.PANNo}" />
+                        <!-- Row 2 -->
                         <TextBlock Grid.Column="0"
                                    Grid.Row="1"
                                    Text="Address:"
-                                   VerticalAlignment="Center"
-                                   Margin="0,4,4,0" />
-                        <TextBox Grid.Column="1"
-                                 Grid.Row="1"
-                                 Text="{Binding VendorSettings.VendorAddress, Mode=TwoWay}" />
+                                   VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="1"
+                                   Text="{Binding VendorSettings.VendorAddress}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="350" />
                         <TextBlock Grid.Column="2"
                                    Grid.Row="1"
                                    Text="Bank A/C:"
-                                   VerticalAlignment="Center"
-                                   Margin="8,4,4,0" />
-                        <TextBox Grid.Column="3"
-                                 Grid.Row="1"
-                                 Text="{Binding VendorSettings.BankAccountNo, Mode=TwoWay}" />
+                                   VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="3"
+                                   Grid.Row="1"
+                                   Text="{Binding VendorSettings.BankAccountNo}" />
                         <TextBlock Grid.Column="4"
                                    Grid.Row="1"
                                    Text="IFSC:"
-                                   VerticalAlignment="Center"
-                                   Margin="8,4,4,0" />
-                        <TextBox Grid.Column="5"
-                                 Grid.Row="1"
-                                 Text="{Binding VendorSettings.IFSC, Mode=TwoWay}" />
+                                   VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="5"
+                                   Grid.Row="1"
+                                   Text="{Binding VendorSettings.IFSC}" />
+                        <!-- Row 3 -->
                         <TextBlock Grid.Column="0"
                                    Grid.Row="2"
                                    Text="Mobile:"
-                                   VerticalAlignment="Center"
-                                   Margin="0,4,4,0" />
-                        <TextBox Grid.Column="1"
-                                 Grid.Row="2"
-                                 Text="{Binding VendorSettings.MobileNumber, Mode=TwoWay}" />
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="2"
+                                   Text="{Binding VendorSettings.MobileNumber}" />
                         <TextBlock Grid.Column="2"
                                    Grid.Row="2"
                                    Text="Email:"
-                                   VerticalAlignment="Center"
-                                   Margin="8,4,4,0" />
-                        <TextBox Grid.Column="3"
-                                 Grid.Row="2"
-                                 Grid.ColumnSpan="3"
-                                 Text="{Binding VendorSettings.Email, Mode=TwoWay}" />
-                    </Grid>
-                    <Separator Margin="0,8" />
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,*,Auto"
-                          RowDefinitions="Auto,Auto">
-                        <TextBlock Grid.Column="0"
-                                   Grid.Row="0"
-                                   Text="Logo Path:"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0" />
-                        <TextBox Grid.Column="1"
-                                 Grid.Row="0"
-                                 Text="{Binding VendorSettings.LogoPath, Mode=TwoWay}" />
-                        <Button Grid.Column="2"
-                                Grid.Row="0"
-                                Content="Browse Logo"
-                                Command="{Binding BrowseLogoPathCommand}"
-                                Margin="8,0,0,0" />
-                        <TextBlock Grid.Column="0"
-                                   Grid.Row="1"
-                                   Text="Download Path:"
-                                   VerticalAlignment="Center"
-                                   Margin="0,4,4,0" />
-                        <TextBox Grid.Column="1"
-                                 Grid.Row="1"
-                                 Text="{Binding VendorSettings.Address, Mode=TwoWay}" />
-                        <Button Grid.Column="2"
-                                Grid.Row="1"
-                                Content="Select Folder"
-                                Command="{Binding BrowseDownloadPathCommand}"
-                                Margin="8,4,0,0" />
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3"
+                                   Grid.Row="2"
+                                   Grid.ColumnSpan="3"
+                                   Text="{Binding VendorSettings.Email}"
+                                   TextWrapping="Wrap" />
                     </Grid>
                 </StackPanel>
             </Border>
