@@ -1,11 +1,11 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
 using ShInvoicing.ViewModels;
 using ShInvoicing.Views;
+using ShInvoicing.Services;
+using System.Linq;
 
 namespace ShInvoicing;
 
@@ -20,13 +20,26 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
-            desktop.MainWindow = new MainWindow
+
+            var licenseService = new LicenseService();
+
+            if (licenseService.Validate())
             {
-                DataContext = new MainWindowViewModel(),
-            };
+                // ✅ Valid license → main app
+                desktop.MainWindow = new MainWindow
+                {
+                    DataContext = new MainWindowViewModel(),
+                };
+            }
+            else
+            {
+                // ❗ No/invalid license → activation screen
+                desktop.MainWindow = new ActivationWindow
+                {
+                    DataContext = new ActivationViewModel(),
+                };
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -34,12 +47,11 @@ public partial class App : Application
 
     private void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
-        var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+        var plugins = BindingPlugins.DataValidators
+            .OfType<DataAnnotationsValidationPlugin>()
+            .ToArray();
 
-        // remove each entry found
-        foreach (var plugin in dataValidationPluginsToRemove)
+        foreach (var plugin in plugins)
         {
             BindingPlugins.DataValidators.Remove(plugin);
         }

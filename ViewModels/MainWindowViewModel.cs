@@ -112,34 +112,22 @@ public partial class MainWindowViewModel : ViewModelBase
     public decimal TotalSGST => InvoiceItems.Sum(i => i.SGSTAmount);
     public decimal TotalIGST => InvoiceItems.Sum(i => i.IGSTAmount);
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
     public MainWindowViewModel()
     {
         _logger = LogService.CreateLogger<MainWindowViewModel>();
         _logger.LogInformation("ViewModel Initialized");
-        LoadBrandingSettings();
-        // Load Excel from data folder
-        if (!Design.IsDesignMode)
-        {
-            _ = LoadExcelFromDataAsync();
-        }
-        // 1. Check if we are in the Avalonia Designer
+        // Initialize with empty VendorSettings - will be populated from Excel file
+        VendorSettings = new VendorSettings();
+        // Check if we are in the Avalonia Designer
         if (Design.IsDesignMode)
         {
             LoadDesignData();
         }
-        // 2. Optional: Load mock data during F5 Debugging so you don't have to pick a file
-#if DEBUG
-        else if (Invoices.Count == 0)
-        {
-            LoadDesignData();
-        }
-#endif
-    }
-
-    private async Task LoadExcelFromDataAsync()
-    {
-        var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "invoices.xlsx");
-        await LoadInvoicesFromFileAsync(filePath);
     }
 
     private async Task LoadInvoicesFromFileAsync(string filePath)
@@ -177,6 +165,9 @@ public partial class MainWindowViewModel : ViewModelBase
             VendorSettings.LogoPath = loadedSettings.LogoPath;
             VendorSettings.Address = loadedSettings.Address;
 
+            // Load optional customizations (logo path, template, colors) from branding.json if available
+            LoadOptionalCustomizations();
+
             StatusMessage = $"Loaded {loadedInvoices.Count} invoices from {filePath}.";
         }
         catch (Exception ex)
@@ -185,29 +176,30 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private List<Invoice> _allFilteredInvoices = new();
+    private List<Invoice> _allFilteredInvoices = [];
 
-    private void LoadBrandingSettings()
+    private void LoadOptionalCustomizations()
     {
         var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "branding.json");
         if (File.Exists(settingsPath))
         {
-            var json = File.ReadAllText(settingsPath);
-            VendorSettings = JsonSerializer.Deserialize<VendorSettings>(json) ?? new VendorSettings
+            try
             {
-                PrimaryColor = "#000000",
-                LogoPath = "",
-                Address = ""
-            };
-        }
-        else
-        {
-            VendorSettings = new VendorSettings
+                var json = File.ReadAllText(settingsPath);
+                var saved = JsonSerializer.Deserialize<VendorSettings>(json);
+                if (saved != null)
+                {
+                    // Only restore optional customizations, not vendor details from Excel
+                    if (!string.IsNullOrWhiteSpace(saved.LogoPath))
+                        VendorSettings.LogoPath = saved.LogoPath;
+                    if (!string.IsNullOrWhiteSpace(saved.Address))
+                        VendorSettings.Address = saved.Address;
+                }
+            }
+            catch (Exception ex)
             {
-                PrimaryColor = "#000000",
-                LogoPath = "",
-                Address = ""
-            };
+                _logger.LogWarning("Error loading customizations from branding.json: {Message}", ex.Message);
+            }
         }
     }
 
@@ -393,6 +385,18 @@ public partial class MainWindowViewModel : ViewModelBase
         await LoadInvoicesFromFileAsync(files[0].Path.LocalPath);
     }
 
+    private static string SanitizeFileName(string fileName)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+
+        foreach (var ch in invalidChars)
+        {
+            fileName = fileName.Replace(ch, '_');
+        }
+
+        return fileName;
+    }
+
     [RelayCommand]
     public async Task GeneratePdfAsync()
     {
@@ -411,8 +415,10 @@ public partial class MainWindowViewModel : ViewModelBase
             Directory.CreateDirectory(outputFolder);
         }
 
-        var outputPath = Path.Combine(outputFolder, $"{SelectedInvoice.InvoiceNo}.pdf");
+        var sanitizedFileName = SanitizeFileName(SelectedInvoice.InvoiceNo ?? DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+        var outputPath = Path.Combine(outputFolder, $"{sanitizedFileName}.pdf");
         await _pdfService.GeneratePdfAsync(SelectedInvoice, VendorSettings!, outputPath);
+        _logger.LogDebug("PDF generated at: {OutputPath}", outputPath);
 
         StatusMessage = $"PDF generated: {outputPath}";
     }
@@ -428,15 +434,21 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
+            // Only save customizations (not vendor details which come from Excel)
+            var customizations = new VendorSettings
+            {
+                LogoPath = VendorSettings.LogoPath,
+                Address = VendorSettings.Address,
+            };
+
             var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "branding.json");
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(VendorSettings, options);
+            var json = JsonSerializer.Serialize(customizations, JsonOptions);
             File.WriteAllText(settingsPath, json);
-            StatusMessage = "Vendor settings saved.";
+            StatusMessage = "Customizations saved to branding.json.";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error saving vendor settings: {ex.Message}";
+            StatusMessage = $"Error saving customizations: {ex.Message}";
         }
     }
 
@@ -491,14 +503,14 @@ public partial class MainWindowViewModel : ViewModelBase
         // 1. Populate Vendor Settings (Reflecting rows 1-5 of your Invoices sheet)
         VendorSettings = new VendorSettings
         {
-            VendorName = "UK ADVERTISERS",
-            VendorAddress = "BJP Office Complex, JewelRock Road, Durgigudi, Shivamogga 577201",
-            GSTIN = "29AAGPU77081ZP",
-            PANNo = "AAGPU7708P",
-            BankAccountNo = "21430200000004",
-            IFSC = "UCB0002143",
-            MobileNumber = "9448638133",
-            Email = "ukadsmg@gmail.com"
+            VendorName = "Test 123",
+            VendorAddress = "Address Line 1\nAddress Line 2\nCity, State ZIP",
+            GSTIN = "GSTIN1234A1Z5",
+            PANNo = "PAN1234A",
+            BankAccountNo = "ACCOUNT123456789",
+            IFSC = "IFSC0001234",
+            MobileNumber = "9876543210",
+            Email = "emaail@example.com"
         };
 
         // 2. Populate Sample Invoice (Reflecting row 8 of your Invoices sheet)
@@ -506,13 +518,13 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             InvoiceNo = "007/2022-23",
             InvoiceDate = new DateTime(2021, 05, 03),
-            CustomerName = "SAHYADRI NARAYANA MULTI SPECIALITY HOSPITAL",
-            CustomerAddress = "N T ROAD, HARKERE, Shivamogga 577202",
+            CustomerName = "Customer ABC",
+            CustomerAddress = "Address Line 3\nAddress Line 5\nCity, State ZIP",
             GrandTotal = 47200,
 
             // 3. Populate Sample Items (Reflecting the 'Invoice Items' sheet)
-            Items = new List<InvoiceItem>
-        {
+            Items =
+        [
             new InvoiceItem
             {
                 InvoiceNo = "007/2022-23",
@@ -525,7 +537,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 SGSTAmount = 3600,
                 IGSTAmount = 0
             }
-        }
+        ]
         };
 
         // 4. Update Collections

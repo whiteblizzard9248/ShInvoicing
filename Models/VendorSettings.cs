@@ -2,7 +2,6 @@ namespace ShInvoicing.Models;
 
 public class VendorSettings
 {
-    public string? PrimaryColor { get; set; }
 
     public string? LogoPath { get; set; }
 
@@ -23,6 +22,4 @@ public class VendorSettings
     public string? MobileNumber { get; set; }
 
     public string? Email { get; set; }
-
-    public string? TemplateImagePath { get; set; }
 }

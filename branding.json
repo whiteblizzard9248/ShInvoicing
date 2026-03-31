@@ -1,5 +1,13 @@
 {
   "LogoPath": "",
-  "PrimaryColor": "#007ACC",
-  "Address": "Your Company Address"
+  "DownloadPath": "",
+  "Address": "Your Company Address",
+  "VendorName": "",
+  "VendorAddress": "",
+  "GSTIN": null,
+  "PANNo": null,
+  "BankAccountNo": null,
+  "IFSC": null,
+  "MobileNumber": "",
+  "Email": ""
 }

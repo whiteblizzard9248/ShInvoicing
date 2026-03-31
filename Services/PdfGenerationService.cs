@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -47,7 +48,7 @@ public class PdfGenerationService
     }
 
     // ================= HEADER =================
-    private void BuildHeader(IContainer container, VendorSettings s)
+    private static void BuildHeader(IContainer container, VendorSettings s)
     {
         container.Column(col =>
         {
@@ -72,7 +73,7 @@ public class PdfGenerationService
     }
 
     // ================= META =================
-    private void BuildMetaSection(IContainer container, Invoice inv)
+    private static void BuildMetaSection(IContainer container, Invoice inv)
     {
         container.Border(1).Table(table =>
         {
@@ -106,7 +107,7 @@ public class PdfGenerationService
     }
 
     // ================= ITEMS (MULTI-PAGE SAFE) =================
-    private void BuildItemsTable(IContainer container, Invoice inv)
+    private static void BuildItemsTable(IContainer container, Invoice inv)
     {
         container.Table(table =>
         {
@@ -144,7 +145,7 @@ public class PdfGenerationService
     }
 
     // ================= TOTALS =================
-    private void BuildTotals(IContainer container, Invoice inv)
+    private static void BuildTotals(IContainer container, Invoice inv)
     {
         var taxable = inv.Items.Sum(x => x.TaxableValue);
         var cgst = inv.Items.Sum(x => x.CGSTAmount);
@@ -167,7 +168,7 @@ public class PdfGenerationService
     }
 
     // ================= FOOTER =================
-    private void BuildBankAndSignature(IContainer container, VendorSettings s)
+    private static void BuildBankAndSignature(IContainer container, VendorSettings s)
     {
         container.Border(1).Padding(5).Row(row =>
         {
@@ -187,7 +188,7 @@ public class PdfGenerationService
     }
 
     // ================= HELPERS =================
-    private static void HeaderCell(TableDescriptor header, string text)
+    private static void HeaderCell(TableCellDescriptor header, string text)
     {
         header.Cell().Border(1).Padding(3).Text(text).Bold();
     }
