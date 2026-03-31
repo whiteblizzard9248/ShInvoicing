@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+using System.Linq;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -8,119 +8,198 @@ namespace ShInvoicing.Services;
 
 public class PdfGenerationService
 {
-    public async Task GeneratePdfAsync(Invoice invoice, CustomerSettings settings, string outputPath)
+    public async Task GeneratePdfAsync(Invoice invoice, VendorSettings settings, string outputPath)
     {
         await Task.Run(() =>
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            var document = Document.Create(container =>
+            Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(2, Unit.Centimetre);
-                    page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(12));
 
-                    page.Header()
-                        .Text("Tax Invoice")
-                        .SemiBold().FontSize(20).FontColor(settings.PrimaryColor ?? Colors.Black);
+                    // 🔴 Print-accurate margins
+                    page.MarginTop(20);
+                    page.MarginBottom(20);
+                    page.MarginLeft(25);
+                    page.MarginRight(15);
 
-                    page.Content()
-                        .PaddingVertical(1, Unit.Centimetre)
-                        .Column(column =>
-                        {
-                            // Vendor Info
-                            column.Item().Text($"Vendor: {invoice.VendorName}").Bold();
-                            column.Item().Text(invoice.VendorAddress);
-                            column.Item().Text($"Mobile: {invoice.MobileNumber}");
-                            column.Item().Text($"Email: {invoice.Email}");
-                            column.Item().Text($"GSTIN: {invoice.GSTIN}");
-                            column.Item().Text($"PAN: {invoice.PANNo}");
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
-                            column.Item().PaddingVertical(1, Unit.Centimetre);
+                    page.Header().Element(e => BuildHeader(e, settings));
 
-                            // Invoice No
-                            column.Item().Text($"Invoice No: {invoice.InvoiceNo}").Bold();
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(2);
 
-                            column.Item().PaddingVertical(0.5f, Unit.Centimetre);
+                        col.Item().Element(e => BuildMetaSection(e, invoice));
+                        col.Item().Element(e => BuildItemsTable(e, invoice));
+                        col.Item().Element(e => BuildTotals(e, invoice));
+                        col.Item().Element(e => BuildBankAndSignature(e, settings));
+                    });
 
-                            // Items Table
-                            column.Item().Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(4); // Description
-                                    columns.RelativeColumn(1); // HSN
-                                    columns.RelativeColumn(1); // Qty
-                                    columns.RelativeColumn(1); // Rate
-                                    columns.RelativeColumn(1); // Taxable
-                                    columns.RelativeColumn(1); // CGST
-                                    columns.RelativeColumn(1); // SGST
-                                    columns.RelativeColumn(1); // IGST
-                                    columns.RelativeColumn(1); // Total
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Element(CellStyle).Text("Description");
-                                    header.Cell().Element(CellStyle).Text("HSN");
-                                    header.Cell().Element(CellStyle).Text("Qty");
-                                    header.Cell().Element(CellStyle).Text("Rate");
-                                    header.Cell().Element(CellStyle).Text("Taxable");
-                                    header.Cell().Element(CellStyle).Text("CGST");
-                                    header.Cell().Element(CellStyle).Text("SGST");
-                                    header.Cell().Element(CellStyle).Text("IGST");
-                                    header.Cell().Element(CellStyle).Text("Total");
-
-                                    static IContainer CellStyle(IContainer container)
-                                    {
-                                        return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Black);
-                                    }
-                                });
-
-                                foreach (var item in invoice.Items)
-                                {
-                                    table.Cell().Element(CellStyle).Text(item.Description);
-                                    table.Cell().Element(CellStyle).Text(item.HSNSACCode);
-                                    table.Cell().Element(CellStyle).Text(item.Quantity.ToString());
-                                    table.Cell().Element(CellStyle).Text(item.Rate.ToString("F2"));
-                                    table.Cell().Element(CellStyle).Text(item.TaxableValue.ToString("F2"));
-                                    table.Cell().Element(CellStyle).Text(item.CGSTAmount.ToString("F2"));
-                                    table.Cell().Element(CellStyle).Text(item.SGSTAmount.ToString("F2"));
-                                    table.Cell().Element(CellStyle).Text(item.IGSTAmount.ToString("F2"));
-                                    table.Cell().Element(CellStyle).Text((item.TaxableValue + item.CGSTAmount + item.SGSTAmount + item.IGSTAmount).ToString("F2"));
-
-                                    static IContainer CellStyle(IContainer container)
-                                    {
-                                        return container.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5);
-                                    }
-                                }
-                            });
-
-                            // Bank Details
-                            column.Item().PaddingVertical(1, Unit.Centimetre);
-                            column.Item().Text("Bank Details:").Bold();
-                            column.Item().Text($"A/C No: {invoice.AccountNo}");
-                            column.Item().Text($"IFSC: {invoice.IFSC}");
-                        });
-
-                    page.Footer()
-                        .AlignCenter()
-                        .Text(x =>
-                        {
-                            x.Span("Generated by ShInvoicing").FontSize(10);
-                        });
+                    page.Footer().AlignCenter().Text(" ");
                 });
-            });
-
-            document.GeneratePdf(outputPath);
+            }).GeneratePdf(outputPath);
         });
     }
 
-    private static IContainer CellStyle(IContainer container)
+    // ================= HEADER =================
+    private void BuildHeader(IContainer container, VendorSettings s)
     {
-        return container.PaddingVertical(5);
+        container.Column(col =>
+        {
+            col.Item().AlignCenter().Text("TAX INVOICE").Bold().FontSize(14);
+
+            col.Item().Row(row =>
+            {
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().Text(s.VendorName).FontSize(18).Bold();
+                    c.Item().Text(s.VendorAddress);
+                    c.Item().Text($"Mob : {s.MobileNumber}   Email : {s.Email}");
+                });
+
+                row.ConstantItem(200).Border(1).Padding(5).Column(c =>
+                {
+                    c.Item().Text($"GSTIN : {s.GSTIN}").Bold();
+                    c.Item().Text($"PAN No : {s.PANNo}");
+                });
+            });
+        });
+    }
+
+    // ================= META =================
+    private void BuildMetaSection(IContainer container, Invoice inv)
+    {
+        container.Border(1).Table(table =>
+        {
+            table.ColumnsDefinition(c =>
+            {
+                c.RelativeColumn(4);
+                c.RelativeColumn(3);
+                c.RelativeColumn(3);
+            });
+
+            table.Cell().Padding(5).Column(c =>
+            {
+                c.Item().Text("Bill To:").Bold();
+                c.Item().Text(inv.CustomerName);
+                c.Item().Text(inv.CustomerAddress);
+            });
+
+            table.Cell().Padding(5).Column(c =>
+            {
+                c.Item().Text("Place of Supply:").Bold();
+                c.Item().Text("SHIMOGA");
+                c.Item().Text("KARNATAKA");
+            });
+
+            table.Cell().Padding(5).Column(c =>
+            {
+                c.Item().Text($"Invoice No : {inv.InvoiceNo}");
+                c.Item().Text($"Date : {inv.InvoiceDate:dd.MM.yyyy}");
+            });
+        });
+    }
+
+    // ================= ITEMS (MULTI-PAGE SAFE) =================
+    private void BuildItemsTable(IContainer container, Invoice inv)
+    {
+        container.Table(table =>
+        {
+            table.ColumnsDefinition(c =>
+            {
+                c.RelativeColumn(5); // Description
+                c.RelativeColumn(2); // HSN
+                c.RelativeColumn(1); // Units
+                c.RelativeColumn(1); // Qty
+                c.RelativeColumn(2); // Rate
+                c.RelativeColumn(2); // Amount
+            });
+
+            // 🔁 Header repeats on every page
+            table.Header(header =>
+            {
+                HeaderCell(header, "Description of Goods / Service");
+                HeaderCell(header, "HSN/SAC");
+                HeaderCell(header, "Units");
+                HeaderCell(header, "Qty");
+                HeaderCell(header, "Rate per sq.ft");
+                HeaderCell(header, "Amount");
+            });
+
+            foreach (var item in inv.Items)
+            {
+                BodyCell(table, item.Description ?? "");
+                BodyCell(table, item.HSNSACCode ?? "");
+                BodyCell(table, item.Units.ToString());
+                BodyCell(table, item.Quantity.ToString());
+                BodyCell(table, $"₹ {item.Rate:N2}");
+                BodyCell(table, $"₹ {item.TaxableValue:N2}");
+            }
+        });
+    }
+
+    // ================= TOTALS =================
+    private void BuildTotals(IContainer container, Invoice inv)
+    {
+        var taxable = inv.Items.Sum(x => x.TaxableValue);
+        var cgst = inv.Items.Sum(x => x.CGSTAmount);
+        var sgst = inv.Items.Sum(x => x.SGSTAmount);
+        var igst = inv.Items.Sum(x => x.IGSTAmount);
+        var total = taxable + cgst + sgst + igst;
+
+        container.Border(1).Padding(5).Column(col =>
+        {
+            col.Item().AlignRight().Text($"Total Taxable Value : {taxable:N2}");
+            col.Item().AlignRight().Text($"Add CGST 9% : {cgst:N2}");
+            col.Item().AlignRight().Text($"Add SGST 9% : {sgst:N2}");
+            col.Item().AlignRight().Text($"Add IGST : {igst:N2}");
+
+            col.Item().AlignRight().Text($"Total : {total:N2}").Bold();
+
+            col.Item().PaddingTop(5)
+                .Text($"Amount (in words): {NumberToWords((int)total)} only");
+        });
+    }
+
+    // ================= FOOTER =================
+    private void BuildBankAndSignature(IContainer container, VendorSettings s)
+    {
+        container.Border(1).Padding(5).Row(row =>
+        {
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text("Bank A/c details:").Bold();
+                col.Item().Text($"A/C NO: {s.BankAccountNo}");
+                col.Item().Text($"IFSC: {s.IFSC}");
+            });
+
+            row.RelativeItem().AlignRight().Column(col =>
+            {
+                col.Item().Text($"For {s.VendorName}");
+                col.Item().PaddingTop(25).Text("(Authorized Signatory)");
+            });
+        });
+    }
+
+    // ================= HELPERS =================
+    private static void HeaderCell(TableDescriptor header, string text)
+    {
+        header.Cell().Border(1).Padding(3).Text(text).Bold();
+    }
+
+    private static void BodyCell(TableDescriptor table, string text)
+    {
+        table.Cell().Border(1).Padding(3).Text(text);
+    }
+
+    private static string NumberToWords(int number)
+    {
+        if (number == 0) return "zero";
+        return number.ToString(); // 🔧 Replace with full converter if needed
     }
 }

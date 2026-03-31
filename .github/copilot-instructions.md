@@ -21,7 +21,7 @@
 
 ### Project Structure (Standard)
 
-1.  **Models:** POCO classes for `Invoice`, `InvoiceItem`, and `CustomerSettings`.
+1.  **Models:** POCO classes for `Invoice`, `InvoiceItem`, and `VendorSettings`.
 2.  **ViewModels:** Logic for file selection, invoice filtering, and command execution.
 3.  **Views:** XAML files for the UI (using `DataGrid` for items and `ComboBox` for selection).
 4.  **Services:**
@@ -59,6 +59,28 @@
 
 - The agent should provide `dotnet publish` commands for `win-x64` (Self-contained) so customers do not need a pre-installed runtime.
 - Ensure `appsettings.json` or `branding.json` is marked as "Copy to Output Directory" so it can be customized per customer.
+
+## 6. Implemented Features (done)
+
+- Excel importer now loads `Invoices` and `Invoice Items` and maps vendor header fields from `Invoices` sheet.
+- Invoice records are grouped by `Invoice No` with line item aggregation.
+- `VendorSettings` now includes:
+  - `VendorName`, `VendorAddress`, `GSTIN`, `PANNo`, `BankAccountNo`, `IFSC`, `LogoPath`, `Address` (output path).
+- Vendor editable form in `MainWindow.axaml` with two-way binding and save button updates `branding.json`.
+- Added file/folder pickers:
+  - `Browse Logo` sets logo file path.
+  - `Select Folder` sets PDF output directory for generation (customer-chosen "Address").
+- `GeneratePdfAsync` uses selected output folder and falls back to Desktop if empty.
+- PDF generator uses `LogoPath` if valid and includes output folder info in the header.
+- `SelectedInvoice` change triggers `InvoiceItems` refresh in DataGrid (`SelectedInvoice.Items` -> `InvoiceItems`).
+
+### 7. Suggested next improvements
+
+- Add validation and error messages for incorrect path/invalid logo file formats.
+- Add a per-invoice `VendorSettings` profile selector to support multiple clients (persist mapping per vendor).
+- Implement RLS and permissions for secure multi-user operation.
+- Add preferences for tax rate presets and rounding rules in PDF detail lines.
+- Add unit tests for Excel parsing + PDF generation output structure.
 
 ---
 

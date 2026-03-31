@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using ShInvoicing.Models;
@@ -8,108 +10,150 @@ namespace ShInvoicing.Services;
 
 public class ExcelService
 {
-    public async Task<List<Invoice>> LoadInvoicesAsync(string filePath)
+
+    public async Task<(List<Invoice> Invoices, VendorSettings Settings)> LoadInvoicesAsync(string filePath)
     {
         var invoices = new List<Invoice>();
         var invoiceItems = new List<InvoiceItem>();
+        var settings = new VendorSettings();
 
         await Task.Run(() =>
         {
             using var workbook = new XLWorkbook(filePath);
+            workbook.RecalculateAllFormulas();
 
-            // Read Invoice Items sheet
+            // 1. Read Invoice Items sheet (Link by InvoiceNo)
             var itemsSheet = workbook.Worksheet("Invoice Items");
             if (itemsSheet != null)
             {
-                foreach (var row in itemsSheet.RowsUsed().Skip(1)) // Skip header
+                foreach (var row in itemsSheet.RowsUsed().Skip(1))
                 {
                     var item = new InvoiceItem
                     {
-                        InvoiceNo = row.Cell(1).GetValue<string>(),
-                        Description = row.Cell(2).GetValue<string>(),
-                        HSNSACCode = row.Cell(3).GetValue<string>(),
-                        Units = row.Cell(4).GetValue<int>(),
-                        Quantity = row.Cell(5).GetValue<int>(),
-                        Rate = row.Cell(6).GetValue<decimal>(),
-                        TaxableValue = row.Cell(7).GetValue<decimal>(),
-                        CGSTPercent = row.Cell(8).GetValue<decimal>(),
-                        CGSTAmount = row.Cell(9).GetValue<decimal>(),
-                        SGSTPercent = row.Cell(10).GetValue<decimal>(),
-                        SGSTAmount = row.Cell(11).GetValue<decimal>(),
-                        IGSTPercent = row.Cell(12).GetValue<decimal>(),
-                        IGSTAmount = row.Cell(13).GetValue<decimal>()
+                        InvoiceNo = GetStringValue(row.Cell(1)),
+                        Description = GetStringValue(row.Cell(2)),
+                        HSNSACCode = GetStringValue(row.Cell(3)),
+                        Units = GetIntValue(row.Cell(4)),
+                        Quantity = GetIntValue(row.Cell(5)),
+                        Rate = GetDecimalValue(row.Cell(6)),
+                        TaxableValue = GetDecimalValue(row.Cell(7)),
+                        CGSTAmount = GetDecimalValue(row.Cell(9)),
+                        SGSTAmount = GetDecimalValue(row.Cell(11)),
+                        IGSTAmount = GetDecimalValue(row.Cell(13))
                     };
-                    if (!string.IsNullOrEmpty(item.InvoiceNo))
-                    {
-                        invoiceItems.Add(item);
-                    }
+                    if (!string.IsNullOrWhiteSpace(item.InvoiceNo)) invoiceItems.Add(item);
                 }
             }
 
-            // Read Invoices sheet for vendor info
+            // 2. Read Invoices sheet (Vendor info in Rows 1-5, Invoices from Row 8)
             var invoicesSheet = workbook.Worksheet("Invoices");
-            string vendorName = "", vendorAddress = "", mobile = "", email = "", gstin = "", pan = "", accountNo = "", ifsc = "";
             if (invoicesSheet != null)
             {
-                foreach (var row in invoicesSheet.RowsUsed())
+                // Parse Vendor metadata (Rows 1-5)
+                foreach (var row in invoicesSheet.Rows(1, 5))
                 {
-                    var firstCell = row.Cell(1).GetValue<string>();
-                    if (firstCell == "Vendor Name")
+                    var label = GetStringValue(row.Cell(1));
+                    int targetCol = label switch
                     {
-                        vendorName = row.Cell(2).GetValue<string>();
-                    }
-                    else if (firstCell == "Vendor Address")
-                    {
-                        vendorAddress = row.Cell(2).GetValue<string>();
-                    }
-                    else if (firstCell == "Mobile Number")
-                    {
-                        mobile = row.Cell(2).GetValue<string>();
-                    }
-                    else if (firstCell == "Email")
-                    {
-                        email = row.Cell(2).GetValue<string>();
-                    }
-                    else if (firstCell == "GSTIN")
-                    {
-                        gstin = row.Cell(4).GetValue<string>();
-                    }
-                    else if (firstCell == "PAN No")
-                    {
-                        pan = row.Cell(4).GetValue<string>();
-                    }
-                    else if (firstCell == "A/C No")
-                    {
-                        accountNo = row.Cell(9).GetValue<string>();
-                    }
-                    else if (firstCell == "IFSC")
-                    {
-                        ifsc = row.Cell(9).GetValue<string>();
-                    }
-                }
-            }
+                        "GSTIN" or "PAN No" => 4,
+                        "A/C No" or "IFSC" => 9,
+                        _ => 2
+                    };
 
-            // Group items by InvoiceNo
-            var groupedItems = invoiceItems.GroupBy(i => i.InvoiceNo);
-            foreach (var group in groupedItems)
-            {
-                var invoice = new Invoice
+                    var val = GetStringValue(row.Cell(targetCol));
+                    _ = label switch
+                    {
+                        "Vendor Name" => settings.VendorName = val,
+                        "Vendor Address" => settings.VendorAddress = val,
+                        "Mobile Number" => settings.MobileNumber = val,
+                        "Email" => settings.Email = val,
+                        "GSTIN" => settings.GSTIN = val,
+                        "PAN No" => settings.PANNo = val,
+                        "A/C No" => settings.BankAccountNo = val,
+                        "IFSC" => settings.IFSC = val,
+                        _ => null
+                    };
+                }
+
+                // Parse Invoice table (Starting from Row 8)
+                foreach (var row in invoicesSheet.RowsUsed().Where(r => r.RowNumber() >= 8))
                 {
-                    InvoiceNo = group.Key,
-                    VendorName = vendorName,
-                    VendorAddress = vendorAddress,
-                    MobileNumber = mobile,
-                    Email = email,
-                    GSTIN = gstin,
-                    PANNo = pan,
-                    AccountNo = accountNo,
-                    IFSC = ifsc,
-                    Items = group.ToList()
-                };
-                invoices.Add(invoice);
+                    var invNo = GetStringValue(row.Cell(1));
+                    if (string.IsNullOrWhiteSpace(invNo)) continue;
+
+                    var groupedItems = invoiceItems
+    .Where(i => !string.IsNullOrWhiteSpace(i.InvoiceNo)) // avoid null keys
+    .GroupBy(i => Normalize(i.InvoiceNo), StringComparer.OrdinalIgnoreCase)
+    .ToDictionary(
+        g => g.Key,
+        g => g.ToList(),
+        StringComparer.OrdinalIgnoreCase
+    );
+
+                    var key = Normalize(invNo);
+
+                    var invoice = new Invoice
+                    {
+                        InvoiceNo = invNo,
+                        InvoiceDate = row.Cell(2).GetDateTime(),
+                        CustomerName = GetStringValue(row.Cell(4)),
+                        CustomerAddress = GetStringValue(row.Cell(5)),
+                        GrandTotal = GetDecimalValue(row.Cell(12)),
+                        // Link items from the list loaded earlier
+                        Items = groupedItems.TryGetValue(key, out var items) ? items : []
+                    };
+                    invoices.Add(invoice);
+                }
             }
         });
 
-        return invoices;
+        return (Invoices: invoices, Settings: settings);
+    }
+    private static string GetStringValue(IXLCell cell)
+    {
+        return cell.GetValue<string>().Trim();
+    }
+
+    private static int GetIntValue(IXLCell cell)
+    {
+        if (cell.TryGetValue<int>(out var intValue))
+        {
+            return intValue;
+        }
+
+        if (cell.TryGetValue<double>(out var doubleValue))
+        {
+            return Convert.ToInt32(Math.Round(doubleValue, MidpointRounding.AwayFromZero));
+        }
+
+        var rawText = cell.GetValue<string>();
+        return int.TryParse(rawText, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedInt)
+            ? parsedInt
+            : 0;
+    }
+
+    private static decimal GetDecimalValue(IXLCell cell)
+    {
+        if (cell.TryGetValue<decimal>(out var decimalValue))
+        {
+            return decimalValue;
+        }
+
+        if (cell.TryGetValue<double>(out var doubleValue))
+        {
+            return Convert.ToDecimal(doubleValue);
+        }
+
+        var rawText = cell.GetValue<string>();
+        return decimal.TryParse(rawText, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal)
+            ? parsedDecimal
+            : 0m;
+    }
+
+    private static string Normalize(string? s)
+    {
+        return string.IsNullOrWhiteSpace(s)
+            ? string.Empty
+            : s.Trim().Replace("\u00A0", " ");
     }
 }
