@@ -210,32 +210,40 @@
                                    FontSize="14"
                                    FontWeight="Bold"
                                    Margin="0,0,0,8" />
-                        <DataGrid Grid.Row="1"
-                                  Height="300"
-                                  ItemsSource="{Binding FilteredInvoiceItems}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Description"
-                                                    Binding="{Binding Description}" />
-                                <DataGridTextColumn Header="HSN/SAC"
-                                                    Binding="{Binding HSNSACCode}" />
-                                <DataGridTextColumn Header="Units"
-                                                    Binding="{Binding Units}" />
-                                <DataGridTextColumn Header="Quantity"
-                                                    Binding="{Binding Quantity}" />
-                                <DataGridTextColumn Header="Rate"
-                                                    Binding="{Binding Rate}" />
-                                <DataGridTextColumn Header="Taxable Value"
-                                                    Binding="{Binding TaxableValue}" />
-                                <DataGridTextColumn Header="CGST"
-                                                    Binding="{Binding CGSTAmount}" />
-                                <DataGridTextColumn Header="SGST"
-                                                    Binding="{Binding SGSTAmount}" />
-                                <DataGridTextColumn Header="IGST"
-                                                    Binding="{Binding IGSTAmount}" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <DataGrid Grid.Row="1"
+                                      Height="300"
+                                      ItemsSource="{Binding FilteredInvoiceItems}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Description"
+                                                            Width="2*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Description}"
+                                                           TextWrapping="Wrap"
+                                                           MaxWidth="600" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="HSN/SAC"
+                                                        Binding="{Binding HSNSACCode}" />
+                                    <DataGridTextColumn Header="Units"
+                                                        Binding="{Binding Units}" />
+                                    <DataGridTextColumn Header="Quantity"
+                                                        Binding="{Binding Quantity}" />
+                                    <DataGridTextColumn Header="Rate"
+                                                        Binding="{Binding Rate}" />
+                                    <DataGridTextColumn Header="Taxable Value"
+                                                        Binding="{Binding TaxableValue}" />
+                                    <DataGridTextColumn Header="CGST"
+                                                        Binding="{Binding CGSTAmount}" />
+                                    <DataGridTextColumn Header="SGST"
+                                                        Binding="{Binding SGSTAmount}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </ScrollViewer>
                         <TextBlock Grid.Row="2"
                                    Text="No items found"
                                    FontStyle="Italic"

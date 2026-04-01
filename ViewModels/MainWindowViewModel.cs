@@ -294,8 +294,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedInvoiceChanged(Invoice? value)
     {
-        _logger.LogDebug("SelectedInvoice changed: {InvoiceNo}", value?.InvoiceNo);
-
         if (value == null)
         {
             InvoiceItems.Clear();
