@@ -30,7 +30,6 @@ jobs:
             --self-contained true \
             /p:PublishSingleFile=true \
             /p:IncludeNativeLibrariesForSelfExtract=true \
-            /p:Version=${{ github.ref_name }} \
             -o publish
 
       - name: Zip artifact
