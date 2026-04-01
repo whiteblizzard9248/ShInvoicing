@@ -2,8 +2,8 @@ name: Build & Release (Windows)
 
 on:
   push:
-    branches:
-      - release
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: write
