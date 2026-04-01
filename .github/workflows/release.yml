@@ -1,0 +1,46 @@
+name: Build & Release (Windows)
+
+on:
+  push:
+    branches:
+      - release
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish Windows EXE
+        run: |
+          dotnet publish -c Release -r win-x64 \
+            --self-contained true \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            /p:Version=${{ github.ref_name }} \
+            -o publish
+
+      - name: Zip artifact
+        run: |
+          cd publish
+          zip -r ../app-win-x64.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-win-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
