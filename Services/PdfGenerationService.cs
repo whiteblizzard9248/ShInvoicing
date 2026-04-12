@@ -59,9 +59,9 @@ public class PdfGenerationService
             {
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().Text(s.VendorName).FontSize(18).Bold();
-                    c.Item().Text(s.VendorAddress);
-                    c.Item().Text($"Mob : {s.MobileNumber}   Email : {s.Email}");
+                    c.Item().Text(s.VendorName ?? "").FontSize(18).Bold();
+                    c.Item().Text(s.VendorAddress ?? "");
+                    c.Item().Text($"Mob : {s.MobileNumber ?? ""}   Email : {s.Email ?? ""}");
                 });
 
                 row.ConstantItem(200).Border(1).Padding(5).Column(c =>

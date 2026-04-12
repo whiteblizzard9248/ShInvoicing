@@ -33,7 +33,7 @@ public class ExcelService
                         InvoiceNo = GetStringValue(row.Cell(1)),
                         Description = GetStringValue(row.Cell(2)),
                         HSNSACCode = GetStringValue(row.Cell(3)),
-                        Units = GetIntValue(row.Cell(4)),
+                        Units = GetStringValue(row.Cell(4)),
                         Quantity = GetIntValue(row.Cell(5)),
                         Rate = GetDecimalValue(row.Cell(6)),
                         TaxableValue = GetDecimalValue(row.Cell(7)),

@@ -1,0 +1,579 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using ShInvoicing.Data;
+using ShInvoicing.Models;
+using ShInvoicing.Services;
+
+namespace ShInvoicing.ViewModels;
+
+public partial class MainWindowViewModel : ViewModelBase
+{
+    private readonly ExcelService _excelService = new();
+    private readonly PdfGenerationService _pdfService = new();
+    private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly AuthService _authService;
+    private readonly InventoryService _inventoryService;
+    private readonly InvoiceRepository _invoiceRepository;
+    private readonly DatabaseService _db;
+
+    public Window? Window { get; set; }
+
+    // ===== AUTH & ROLE PROPERTIES =====
+    [ObservableProperty]
+    private ApplicationUser? currentUser;
+
+    [ObservableProperty]
+    private string loginUsername = string.Empty;
+
+    [ObservableProperty]
+    private string loginPassword = string.Empty;
+
+    [ObservableProperty]
+    private bool isLoginVisible = true;
+
+    [ObservableProperty]
+    private bool isCoreUiVisible = false;
+
+    [ObservableProperty]
+    private string statusMessage = string.Empty;
+
+    // ===== ROLE-BASED VISIBILITY =====
+    public bool CanManageUsers => CurrentUser?.Role?.RoleName == "Admin";
+    public bool CanUseSales => CurrentUser?.Role != null && (CurrentUser.Role.RoleName == "Admin" || CurrentUser.Role.RoleName == "Staff");
+    public bool CanUseInventory => CurrentUser?.Role != null && (CurrentUser.Role.RoleName == "Admin" || CurrentUser.Role.RoleName == "Staff");
+    public bool CanViewReports => CurrentUser?.Role != null;
+
+    // ===== DASHBOARD PROPERTIES =====
+    [ObservableProperty]
+    private int totalInvoices;
+
+    [ObservableProperty]
+    private int totalProducts;
+
+    [ObservableProperty]
+    private int totalUsers;
+
+    [ObservableProperty]
+    private decimal totalRevenue;
+
+    // ===== INVOICE MANAGEMENT PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<Invoice> invoices = [];
+
+    [ObservableProperty]
+    private ObservableCollection<Invoice> filteredInvoices = [];
+
+    [ObservableProperty]
+    private Invoice? selectedInvoice;
+
+    [ObservableProperty]
+    private ObservableCollection<InvoiceItem> invoiceItems = [];
+
+    [ObservableProperty]
+    private int invoiceItemCount;
+
+    [ObservableProperty]
+    private bool isInvoiceItemsEmpty;
+
+    [ObservableProperty]
+    private VendorSettings vendorSettings = new();
+
+    [ObservableProperty]
+    private string searchQuery = string.Empty;
+
+    // ===== PAGINATION PROPERTIES =====
+    [ObservableProperty]
+    private int currentPage = 1;
+
+    [ObservableProperty]
+    private int totalPages = 1;
+
+    [ObservableProperty]
+    private int itemsPerPage = 5;
+
+    [ObservableProperty]
+    private bool isPreviousPageEnabled;
+
+    [ObservableProperty]
+    private bool isNextPageEnabled;
+
+    [ObservableProperty]
+    private string pageInfo = "Page 1/1";
+
+    [ObservableProperty]
+    private string filteredInvoiceCountSummary = string.Empty;
+
+    [ObservableProperty]
+    private string invoiceItemsHeader = "Invoice Items (0)";
+
+    [ObservableProperty]
+    private int invoiceItemsCurrentPage = 1;
+
+    [ObservableProperty]
+    private int invoiceItemsTotalPages = 1;
+
+    [ObservableProperty]
+    private int invoiceItemsPerPage = 5;
+
+    [ObservableProperty]
+    private bool isInvoiceItemsPreviousEnabled;
+
+    [ObservableProperty]
+    private bool isInvoiceItemsNextEnabled;
+
+    [ObservableProperty]
+    private string invoiceItemsPageInfo = "Page 1/1";
+
+    [ObservableProperty]
+    private ObservableCollection<InvoiceItem> filteredInvoiceItems = [];
+
+    // ===== INVENTORY & POS PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<Product> products = [];
+
+    [ObservableProperty]
+    private Product? selectedProduct;
+
+    [ObservableProperty]
+    private string productCode = string.Empty;
+
+    [ObservableProperty]
+    private string productName = string.Empty;
+
+    [ObservableProperty]
+    private decimal productPrice = 0;
+
+    [ObservableProperty]
+    private int productStock = 0;
+
+    [ObservableProperty]
+    private int productMinStock = 5;
+
+    [ObservableProperty]
+    private ObservableCollection<Product> saleCart = [];
+
+    [ObservableProperty]
+    private ObservableCollection<Product> purchaseCart = [];
+
+    [ObservableProperty]
+    private decimal saleCartTotal = 0;
+
+    [ObservableProperty]
+    private decimal saleCartGst = 0;
+
+    [ObservableProperty]
+    private decimal purchaseCartTotal = 0;
+
+    [ObservableProperty]
+    private string customerName = string.Empty;
+
+    [ObservableProperty]
+    private string supplierName = string.Empty;
+
+    // ===== USER MANAGEMENT PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<ApplicationUser> users = [];
+
+    [ObservableProperty]
+    private ApplicationUser? selectedUser;
+
+    [ObservableProperty]
+    private string newUsername = string.Empty;
+
+    [ObservableProperty]
+    private string newUserPassword = string.Empty;
+
+    [ObservableProperty]
+    private string selectedUserRole = "User";
+
+    // ===== TAX CALCULATION CONSTANTS =====
+    private const decimal GST_RATE = 0.18m;  // 18% GST for India
+
+    private bool _isLoadingData = false;
+
+    public string VendorDetailsToggleText => true ? "Hide Vendor Details" : "Show Vendor Details";
+
+    public decimal TotalRate => InvoiceItems.Sum(i => i.Rate);
+    public decimal TotalTaxable => InvoiceItems.Sum(i => i.TaxableValue);
+    public decimal TotalCGST => InvoiceItems.Sum(i => i.CGSTAmount);
+    public decimal TotalSGST => InvoiceItems.Sum(i => i.SGSTAmount);
+    public decimal TotalIGST => InvoiceItems.Sum(i => i.IGSTAmount);
+
+
+
+    public MainWindowViewModel()
+    {
+        _logger = LogService.CreateLogger<MainWindowViewModel>();
+        _db = new DatabaseService();
+        _invoiceRepository = new InvoiceRepository(_db);
+        _authService = new AuthService(_db);
+        _inventoryService = new InventoryService(_db);
+
+        // Initialize vendor settings
+        VendorSettings = new VendorSettings();
+
+        // Check if we are in Avalonia Designer
+        if (Design.IsDesignMode)
+        {
+            LoadDesignData();
+        }
+        else
+        {
+            // Initialize database on startup
+            _db.Initialize();
+        }
+    }
+
+    private async Task LoadInvoicesFromFileAsync(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            StatusMessage = $"File not found: {filePath}";
+            return;
+        }
+
+        try
+        {
+            var (loadedInvoices, loadedSettings) = await _excelService.LoadInvoicesAsync(filePath);
+
+            using var conn = _db.GetConnection();
+            await conn.OpenAsync();
+
+            using var tx = conn.BeginTransaction();
+
+            try
+            {
+                foreach (var invoice in loadedInvoices)
+                {
+                    await _invoiceRepository.UpsertInvoiceAsync(conn, tx, invoice);
+
+                    foreach (var item in invoice.Items ?? Enumerable.Empty<InvoiceItem>())
+                    {
+                        await _invoiceRepository.InsertItemAsync(conn, tx, item);
+                    }
+                }
+
+                await _invoiceRepository.SaveVendorSettingsAsync(conn, tx, loadedSettings);
+
+                // ✅ Commit ONLY if everything succeeds
+                tx.Commit();
+            }
+            catch
+            {
+                // ❌ Rollback on failure
+                tx.Rollback();
+                throw;
+            }
+
+            // 🔹 Load from DB
+            var invoices = await _invoiceRepository.GetInvoicesAsync();
+            Invoices = new ObservableCollection<Invoice>(invoices);
+
+            SelectedInvoice = Invoices.FirstOrDefault();
+            ApplyFilterAndPaging();
+
+            var settingsFromDb = await _invoiceRepository.GetVendorSettingsAsync();
+            if (settingsFromDb != null)
+                VendorSettings = settingsFromDb;
+
+            StatusMessage = $"Loaded {loadedInvoices.Count} invoices from {filePath}.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading Excel file: {ex.Message}";
+        }
+    }
+
+    private List<Invoice> _allFilteredInvoices = [];
+
+
+
+    partial void OnSearchQueryChanged(string value)
+    {
+        CurrentPage = 1;
+        ApplyFilterAndPaging();
+    }
+
+    partial void OnCurrentPageChanged(int value)
+    {
+        ApplyFilterAndPaging();
+    }
+
+    partial void OnInvoiceItemCountChanged(int value)
+    {
+        InvoiceItemsHeader = $"Invoice Items ({value}) {InvoiceItemsPageInfo}";
+    }
+
+    partial void OnInvoiceItemsCurrentPageChanged(int value)
+    {
+        ApplyInvoiceItemsPaging();
+        InvoiceItemsHeader = $"Invoice Items ({InvoiceItemCount}) {InvoiceItemsPageInfo}";
+    }
+
+    private void ApplyFilterAndPaging()
+    {
+        var query = SearchQuery?.Trim();
+        IEnumerable<Invoice> filtered;
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            filtered = Invoices;
+        }
+        else
+        {
+            filtered = Invoices.Where(inv =>
+                (!string.IsNullOrWhiteSpace(inv.InvoiceNo) && inv.InvoiceNo.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(inv.CustomerName) && inv.CustomerName.Contains(query, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        _allFilteredInvoices = filtered.ToList();
+
+        TotalPages = Math.Max(1, (int)Math.Ceiling(_allFilteredInvoices.Count / (double)ItemsPerPage));
+        if (CurrentPage > TotalPages) CurrentPage = TotalPages;
+
+        var pageItems = _allFilteredInvoices
+            .Skip((CurrentPage - 1) * ItemsPerPage)
+            .Take(ItemsPerPage);
+
+        FilteredInvoices = new ObservableCollection<Invoice>(pageItems);
+
+        IsPreviousPageEnabled = CurrentPage > 1;
+        IsNextPageEnabled = CurrentPage < TotalPages;
+        PageInfo = $"Page {CurrentPage}/{TotalPages}";
+        FilteredInvoiceCountSummary = $"Showing {FilteredInvoices.Count} of {_allFilteredInvoices.Count} invoices";
+    }
+
+    private void ApplyInvoiceItemsPaging()
+    {
+        if (InvoiceItems.Count == 0)
+        {
+            FilteredInvoiceItems.Clear();
+            InvoiceItemsTotalPages = 1;
+            InvoiceItemsCurrentPage = 1;
+            IsInvoiceItemsPreviousEnabled = false;
+            IsInvoiceItemsNextEnabled = false;
+            InvoiceItemsPageInfo = "Page 1/1";
+            return;
+        }
+
+        InvoiceItemsTotalPages = Math.Max(1, (int)Math.Ceiling(InvoiceItems.Count / (double)InvoiceItemsPerPage));
+        if (InvoiceItemsCurrentPage > InvoiceItemsTotalPages) InvoiceItemsCurrentPage = InvoiceItemsTotalPages;
+
+        var pageItems = InvoiceItems
+            .Skip((InvoiceItemsCurrentPage - 1) * InvoiceItemsPerPage)
+            .Take(InvoiceItemsPerPage);
+
+        FilteredInvoiceItems = new ObservableCollection<InvoiceItem>(pageItems);
+
+        IsInvoiceItemsPreviousEnabled = InvoiceItemsCurrentPage > 1;
+        IsInvoiceItemsNextEnabled = InvoiceItemsCurrentPage < InvoiceItemsTotalPages;
+        InvoiceItemsPageInfo = $"Page {InvoiceItemsCurrentPage}/{InvoiceItemsTotalPages}";
+    }
+
+    [RelayCommand]
+    public void NextPage()
+    {
+        if (CurrentPage < TotalPages)
+        {
+            CurrentPage++;
+        }
+    }
+
+    [RelayCommand]
+    public void PreviousPage()
+    {
+        if (CurrentPage > 1)
+        {
+            CurrentPage--;
+        }
+    }
+
+    [RelayCommand]
+    public void NextInvoiceItemsPage()
+    {
+        if (InvoiceItemsCurrentPage < InvoiceItemsTotalPages)
+        {
+            InvoiceItemsCurrentPage++;
+        }
+    }
+
+    [RelayCommand]
+    public void PreviousInvoiceItemsPage()
+    {
+        if (InvoiceItemsCurrentPage > 1)
+        {
+            InvoiceItemsCurrentPage--;
+        }
+    }
+
+    partial void OnSelectedInvoiceChanged(Invoice? value)
+    {
+        if (value == null)
+        {
+            InvoiceItems.Clear();
+            FilteredInvoiceItems.Clear();
+            InvoiceItemCount = 0;
+            IsInvoiceItemsEmpty = true;
+            InvoiceItemsCurrentPage = 1;
+            return;
+        }
+
+        var items = value.Items ?? new List<InvoiceItem>();
+
+        InvoiceItems.Clear();
+
+        foreach (var item in items)
+        {
+            InvoiceItems.Add(item);
+        }
+
+        InvoiceItemCount = InvoiceItems.Count;
+        IsInvoiceItemsEmpty = InvoiceItems.Count == 0;
+        InvoiceItemsCurrentPage = 1; // Reset to first page
+        ApplyInvoiceItemsPaging();
+
+        StatusMessage = $"Loaded {InvoiceItems.Count} items for invoice {value.InvoiceNo}";
+    }
+
+    [RelayCommand]
+    public async Task LoadExcelFileAsync()
+    {
+        if (Window?.StorageProvider is not { } provider)
+        {
+            StatusMessage = "File picker unavailable.";
+            return;
+        }
+
+        var files = await provider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select Excel File",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Excel Files")
+                {
+                    Patterns = ["*.xlsx", "*.xls"],
+                    MimeTypes = ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]
+                }
+            ]
+        });
+
+        if (files.Count == 0)
+        {
+            StatusMessage = "No file selected.";
+            return;
+        }
+
+        await LoadInvoicesFromFileAsync(files[0].Path.LocalPath);
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+
+        foreach (var ch in invalidChars)
+        {
+            fileName = fileName.Replace(ch, '_');
+        }
+
+        return fileName;
+    }
+
+    [RelayCommand]
+    public async Task GeneratePdfAsync()
+    {
+        if (SelectedInvoice == null)
+        {
+            StatusMessage = "Please select an invoice.";
+            return;
+        }
+
+        var outputFolder = string.IsNullOrWhiteSpace(VendorSettings.Address)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            : VendorSettings.Address;
+
+        if (!Directory.Exists(outputFolder))
+        {
+            Directory.CreateDirectory(outputFolder);
+        }
+
+        var sanitizedFileName = SanitizeFileName(SelectedInvoice.InvoiceNo ?? DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+        var outputPath = Path.Combine(outputFolder, $"{sanitizedFileName}.pdf");
+        await _pdfService.GeneratePdfAsync(SelectedInvoice, VendorSettings!, outputPath);
+        _logger.LogDebug("PDF generated at: {OutputPath}", outputPath);
+
+        StatusMessage = $"PDF generated: {outputPath}";
+    }
+
+    [RelayCommand]
+    public void ToggleVendorDetails()
+    {
+        IsVendorDetailsVisible = !IsVendorDetailsVisible;
+    }
+
+
+    private void LoadDesignData()
+    {
+        StatusMessage = "Design-Time Preview Active";
+
+        // 1. Populate Vendor Settings (Reflecting rows 1-5 of your Invoices sheet)
+        VendorSettings = new VendorSettings
+        {
+            VendorName = "Test 123",
+            VendorAddress = "Address Line 1\nAddress Line 2\nCity, State ZIP",
+            GSTIN = "GSTIN1234A1Z5",
+            PANNo = "PAN1234A",
+            BankAccountNo = "ACCOUNT123456789",
+            IFSC = "IFSC0001234",
+            MobileNumber = "9876543210",
+            Email = "emaail@example.com"
+        };
+
+        // 2. Populate Sample Invoice (Reflecting row 8 of your Invoices sheet)
+        var mockInvoice = new Invoice
+        {
+            InvoiceNo = "007/2022-23",
+            InvoiceDate = new DateTime(2021, 05, 03),
+            CustomerName = "Customer ABC",
+            CustomerAddress = "Address Line 3\nAddress Line 5\nCity, State ZIP",
+            GrandTotal = 47200,
+
+            // 3. Populate Sample Items (Reflecting the 'Invoice Items' sheet)
+            Items =
+        [
+            new InvoiceItem
+            {
+                InvoiceNo = "007/2022-23",
+                Description = "39 CENTER MEDIAN BOARDS ONE MONTH DISPLAY CHARGES (32 LIT AND 7 NONLIT BOARDS)",
+                HSNSACCode = "998361",
+                Quantity = 39,
+                Rate = 40000,
+                TaxableValue = 40000,
+                CGSTAmount = 3600,
+                SGSTAmount = 3600,
+                IGSTAmount = 0
+            }
+        ]
+        };
+
+        // 4. Update Collections
+        Invoices.Clear();
+        Invoices.Add(mockInvoice);
+
+        ApplyFilterAndPaging();
+
+        // Set as selected to trigger the DataGrid to fill via OnSelectedInvoiceChanged
+        SelectedInvoice = mockInvoice;
+    }
+}

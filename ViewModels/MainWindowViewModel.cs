@@ -10,6 +10,7 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using ShInvoicing.Data;
 using ShInvoicing.Models;
 using ShInvoicing.Services;
 
@@ -20,9 +21,54 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ExcelService _excelService = new();
     private readonly PdfGenerationService _pdfService = new();
     private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly AuthService _authService;
+    private readonly InventoryService _inventoryService;
+    private readonly InvoiceRepository _invoiceRepository;
+    private readonly UserRepository _userRepository;
+    private readonly DatabaseService _db;
 
     public Window? Window { get; set; }
 
+    // ===== AUTH & ROLE PROPERTIES =====
+    [ObservableProperty]
+    private ApplicationUser? currentUser;
+
+    [ObservableProperty]
+    private string loginUsername = string.Empty;
+
+    [ObservableProperty]
+    private string loginPassword = string.Empty;
+
+    [ObservableProperty]
+    private bool isLoginVisible = true;
+
+    [ObservableProperty]
+    private bool isCoreUiVisible = false;
+
+    [ObservableProperty]
+    private string statusMessage = string.Empty;
+
+    // ===== ROLE-BASED VISIBILITY =====
+    public bool IsAuthenticated => CurrentUser != null;
+    public bool CanManageUsers => CurrentUser?.RoleName == "Admin";
+    public bool CanUseSales => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
+    public bool CanUseInventory => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
+    public bool CanUsePurchases => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
+
+    // ===== DASHBOARD PROPERTIES =====
+    [ObservableProperty]
+    private int totalInvoices;
+
+    [ObservableProperty]
+    private int totalProducts;
+
+    [ObservableProperty]
+    private int totalUsers;
+
+    [ObservableProperty]
+    private decimal totalRevenue;
+
+    // ===== INVOICE MANAGEMENT PROPERTIES =====
     [ObservableProperty]
     private ObservableCollection<Invoice> invoices = [];
 
@@ -47,6 +93,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string searchQuery = string.Empty;
 
+    // ===== PAGINATION PROPERTIES =====
     [ObservableProperty]
     private int currentPage = 1;
 
@@ -72,6 +119,24 @@ public partial class MainWindowViewModel : ViewModelBase
     private string invoiceItemsHeader = "Invoice Items (0)";
 
     [ObservableProperty]
+    private bool isDashboardVisible = true;
+
+    [ObservableProperty]
+    private bool isInventoryVisible = false;
+
+    [ObservableProperty]
+    private bool isSalesVisible = false;
+
+    [ObservableProperty]
+    private bool isPurchaseVisible = false;
+
+    [ObservableProperty]
+    private bool isUserManagementVisible = false;
+
+    [ObservableProperty]
+    private bool isInvoiceListVisible = false;
+
+    [ObservableProperty]
     private int invoiceItemsCurrentPage = 1;
 
     [ObservableProperty]
@@ -92,19 +157,104 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<InvoiceItem> filteredInvoiceItems = [];
 
+    // ===== SALES PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<InvoiceItem> saleItems = [];
 
     [ObservableProperty]
-    private string? statusMessage;
+    private string saleProductCode = string.Empty;
 
     [ObservableProperty]
-    private bool isVendorDetailsVisible = true;
+    private int saleQuantity = 1;
 
-    public string VendorDetailsToggleText => IsVendorDetailsVisible ? "Hide Vendor Details" : "Show Vendor Details";
+    // ===== PURCHASE PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<InvoiceItem> purchaseItems = [];
 
-    partial void OnIsVendorDetailsVisibleChanged(bool value)
-    {
-        OnPropertyChanged(nameof(VendorDetailsToggleText));
-    }
+    [ObservableProperty]
+    private string purchaseProductCode = string.Empty;
+
+    [ObservableProperty]
+    private int purchaseQuantity = 1;
+
+    // ===== INVENTORY & POS PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<Product> products = [];
+
+    [ObservableProperty]
+    private Product? selectedProduct;
+
+    [ObservableProperty]
+    private string productCode = string.Empty;
+
+    [ObservableProperty]
+    private string productName = string.Empty;
+
+    [ObservableProperty]
+    private decimal productPrice = 0;
+
+    [ObservableProperty]
+    private string newProductCode = string.Empty;
+
+    [ObservableProperty]
+    private string newProductName = string.Empty;
+
+    [ObservableProperty]
+    private decimal newProductSaleRate = 0;
+
+    [ObservableProperty]
+    private int productStock = 0;
+
+    [ObservableProperty]
+    private int productMinStock = 5;
+
+    [ObservableProperty]
+    private ObservableCollection<Product> saleCart = [];
+
+    [ObservableProperty]
+    private ObservableCollection<Product> purchaseCart = [];
+
+    [ObservableProperty]
+    private decimal saleCartTotal = 0;
+
+    [ObservableProperty]
+    private decimal saleCartGst = 0;
+
+    [ObservableProperty]
+    private decimal purchaseCartTotal = 0;
+
+    [ObservableProperty]
+    private string customerName = string.Empty;
+
+    [ObservableProperty]
+    private string supplierName = string.Empty;
+
+    // ===== USER MANAGEMENT PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<ApplicationUser> users = [];
+
+    [ObservableProperty]
+    private ApplicationUser? selectedUser;
+
+    [ObservableProperty]
+    private string newUserUsername = string.Empty;
+
+    [ObservableProperty]
+    private string newUserDisplayName = string.Empty;
+
+    [ObservableProperty]
+    private string newUsername = string.Empty;
+
+    [ObservableProperty]
+    private string newUserPassword = string.Empty;
+
+    [ObservableProperty]
+    private string selectedUserRole = "User";
+
+    // ===== TAX CALCULATION CONSTANTS =====
+    private const decimal GST_RATE = 0.18m;  // 18% GST for India
+
+    public string VendorDetailsToggleText => true ? "Hide Vendor Details" : "Show Vendor Details";
 
     public decimal TotalRate => InvoiceItems.Sum(i => i.Rate);
     public decimal TotalTaxable => InvoiceItems.Sum(i => i.TaxableValue);
@@ -117,10 +267,16 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _logger = LogService.CreateLogger<MainWindowViewModel>();
-        _logger.LogInformation("ViewModel Initialized");
-        // Initialize with empty VendorSettings - will be populated from Excel file
+        _db = new DatabaseService();
+        _invoiceRepository = new InvoiceRepository(_db);
+        _userRepository = new UserRepository(_db);
+        _authService = new AuthService();
+        _inventoryService = new InventoryService();
+
+        // Initialize vendor settings
         VendorSettings = new VendorSettings();
-        // Check if we are in the Avalonia Designer
+
+        // Check if we are in Avalonia Designer
         if (Design.IsDesignMode)
         {
             LoadDesignData();
@@ -138,28 +294,46 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             var (loadedInvoices, loadedSettings) = await _excelService.LoadInvoicesAsync(filePath);
-            Invoices.Clear();
-            foreach (var invoice in loadedInvoices)
+
+            using var conn = _db.GetConnection();
+            await conn.OpenAsync();
+
+            using var tx = conn.BeginTransaction();
+
+            try
             {
-                Invoices.Add(invoice);
+                foreach (var invoice in loadedInvoices)
+                {
+                    await _invoiceRepository.UpsertInvoiceAsync(conn, tx, invoice);
+
+                    foreach (var item in invoice.Items ?? Enumerable.Empty<InvoiceItem>())
+                    {
+                        await _invoiceRepository.InsertItemAsync(conn, tx, item);
+                    }
+                }
+
+                await _invoiceRepository.SaveVendorSettingsAsync(conn, tx, loadedSettings);
+
+                // ✅ Commit ONLY if everything succeeds
+                tx.Commit();
+            }
+            catch
+            {
+                // ❌ Rollback on failure
+                tx.Rollback();
+                throw;
             }
 
-            if (Invoices.Count > 0)
-            {
-                SelectedInvoice = Invoices[0];
-            }
+            // 🔹 Load from DB
+            var invoices = await _invoiceRepository.GetInvoicesAsync();
+            Invoices = new ObservableCollection<Invoice>(invoices);
 
+            SelectedInvoice = Invoices.FirstOrDefault();
             ApplyFilterAndPaging();
 
-            VendorSettings.VendorName = loadedSettings.VendorName;
-            VendorSettings.VendorAddress = loadedSettings.VendorAddress;
-            VendorSettings.GSTIN = loadedSettings.GSTIN;
-            VendorSettings.PANNo = loadedSettings.PANNo;
-            VendorSettings.BankAccountNo = loadedSettings.BankAccountNo;
-            VendorSettings.IFSC = loadedSettings.IFSC;
-            VendorSettings.MobileNumber = loadedSettings.MobileNumber;
-            VendorSettings.Email = loadedSettings.Email;
-            VendorSettings.Address = loadedSettings.Address;
+            var settingsFromDb = await _invoiceRepository.GetVendorSettingsAsync();
+            if (settingsFromDb != null)
+                VendorSettings = settingsFromDb;
 
             StatusMessage = $"Loaded {loadedInvoices.Count} invoices from {filePath}.";
         }
@@ -170,6 +344,15 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private List<Invoice> _allFilteredInvoices = [];
+
+    partial void OnCurrentUserChanged(ApplicationUser? value)
+    {
+        OnPropertyChanged(nameof(IsAuthenticated));
+        OnPropertyChanged(nameof(CanManageUsers));
+        OnPropertyChanged(nameof(CanUseSales));
+        OnPropertyChanged(nameof(CanUseInventory));
+        OnPropertyChanged(nameof(CanUsePurchases));
+    }
 
 
 
@@ -292,6 +475,446 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // ===== NAVIGATION COMMANDS =====
+    [RelayCommand]
+    public void ShowDashboard()
+    {
+        IsDashboardVisible = true;
+        IsInventoryVisible = false;
+        IsSalesVisible = false;
+        IsPurchaseVisible = false;
+        IsUserManagementVisible = false;
+        IsInvoiceListVisible = false;
+    }
+
+    [RelayCommand]
+    public async Task ShowInventoryAsync()
+    {
+        IsDashboardVisible = false;
+        IsInventoryVisible = true;
+        IsSalesVisible = false;
+        IsPurchaseVisible = false;
+        IsUserManagementVisible = false;
+        IsInvoiceListVisible = false;
+
+        await LoadProductsAsync();
+    }
+
+    [RelayCommand]
+    public void ShowSales()
+    {
+        IsDashboardVisible = false;
+        IsInventoryVisible = false;
+        IsSalesVisible = true;
+        IsPurchaseVisible = false;
+        IsUserManagementVisible = false;
+        IsInvoiceListVisible = false;
+    }
+
+    [RelayCommand]
+    public void ShowPurchase()
+    {
+        IsDashboardVisible = false;
+        IsInventoryVisible = false;
+        IsSalesVisible = false;
+        IsPurchaseVisible = true;
+        IsUserManagementVisible = false;
+        IsInvoiceListVisible = false;
+    }
+
+    [RelayCommand]
+    public async Task ShowUsersAsync()
+    {
+        IsDashboardVisible = false;
+        IsInventoryVisible = false;
+        IsSalesVisible = false;
+        IsPurchaseVisible = false;
+        IsUserManagementVisible = true;
+        IsInvoiceListVisible = false;
+
+        await LoadUsersAsync();
+    }
+
+    [RelayCommand]
+    public void ShowInvoices()
+    {
+        IsDashboardVisible = false;
+        IsInventoryVisible = false;
+        IsSalesVisible = false;
+        IsPurchaseVisible = false;
+        IsUserManagementVisible = false;
+        IsInvoiceListVisible = true;
+    }
+
+    [RelayCommand]
+    public async Task LoginAsync()
+    {
+        try
+        {
+            var user = await _authService.ValidateUserAsync(LoginUsername, LoginPassword);
+            if (user != null)
+            {
+                CurrentUser = user;
+                IsLoginVisible = false;
+                IsCoreUiVisible = true;
+                StatusMessage = $"Welcome, {user.DisplayName}!";
+                ShowDashboard();
+                await LoadDashboardDataAsync();
+            }
+            else
+            {
+                StatusMessage = "Invalid username or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Login failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void Logout()
+    {
+        CurrentUser = null;
+        IsLoginVisible = true;
+        IsCoreUiVisible = false;
+        StatusMessage = "Logged out successfully.";
+        LoginUsername = string.Empty;
+        LoginPassword = string.Empty;
+    }
+
+    // ===== LOAD METHODS =====
+    private async Task LoadDashboardDataAsync()
+    {
+        try
+        {
+            var invoices = await _invoiceRepository.GetInvoicesAsync();
+            Invoices = new ObservableCollection<Invoice>(invoices);
+            TotalInvoices = Invoices.Count;
+            TotalRevenue = Invoices.Sum(i => i.GrandTotal);
+
+            var products = await _inventoryService.GetAllProductsAsync();
+            Products = new ObservableCollection<Product>(products);
+            TotalProducts = Products.Count;
+
+            var users = await _userRepository.GetUsersAsync();
+            Users = new ObservableCollection<ApplicationUser>(users);
+            TotalUsers = Users.Count;
+
+            SelectedInvoice = Invoices.FirstOrDefault();
+            CurrentPage = 1;
+            ApplyFilterAndPaging();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load dashboard data: {ex.Message}";
+        }
+    }
+    private async Task LoadProductsAsync()
+    {
+        try
+        {
+            var productsList = await _inventoryService.GetAllProductsAsync();
+            Products.Clear();
+            foreach (var product in productsList)
+            {
+                Products.Add(product);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load products: {ex.Message}";
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            var usersList = await _userRepository.GetUsersAsync();
+            Users.Clear();
+            foreach (var user in usersList)
+            {
+                Users.Add(user);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load users: {ex.Message}";
+        }
+    }
+
+    // ===== PRODUCT COMMANDS =====
+    [RelayCommand]
+    public async Task SaveProductAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewProductCode) || string.IsNullOrWhiteSpace(NewProductName))
+        {
+            StatusMessage = "Product code and name are required.";
+            return;
+        }
+
+        try
+        {
+            var product = new Product
+            {
+                Code = NewProductCode.Trim(),
+                Name = NewProductName.Trim(),
+                SaleRate = NewProductSaleRate,
+                GSTPercent = GST_RATE * 100,
+                StockQty = 0,
+                MinStockQty = 0
+            };
+
+            await _inventoryService.AddProductAsync(product);
+            Products.Add(product);
+            StatusMessage = "Product saved successfully.";
+
+            // Clear form
+            NewProductCode = string.Empty;
+            NewProductName = string.Empty;
+            NewProductSaleRate = 0;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to save product: {ex.Message}";
+        }
+    }
+
+    // ===== SALES COMMANDS =====
+    [RelayCommand]
+    public async Task AddSaleItemAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SaleProductCode) || SaleQuantity <= 0)
+        {
+            StatusMessage = "Valid product code and quantity required.";
+            return;
+        }
+
+        try
+        {
+            var product = await _inventoryService.GetProductByCodeAsync(SaleProductCode.Trim());
+            if (product == null)
+            {
+                StatusMessage = "Product not found.";
+                return;
+            }
+
+            if (product.StockQty < SaleQuantity)
+            {
+                StatusMessage = "Insufficient stock.";
+                return;
+            }
+
+            var item = new InvoiceItem
+            {
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                Description = product.Name,
+                HSNSACCode = product.HSNSACCode,
+                Units = product.Unit,
+                Quantity = SaleQuantity,
+                Rate = product.SaleRate,
+                TaxableValue = SaleQuantity * product.SaleRate,
+                CGSTPercent = product.GSTPercent / 2,
+                CGSTAmount = (SaleQuantity * product.SaleRate * product.GSTPercent / 2) / 100,
+                SGSTPercent = product.GSTPercent / 2,
+                SGSTAmount = (SaleQuantity * product.SaleRate * product.GSTPercent / 2) / 100,
+                IGSTPercent = 0,
+                IGSTAmount = 0,
+                LineTotal = SaleQuantity * product.SaleRate + (SaleQuantity * product.SaleRate * product.GSTPercent) / 100
+            };
+
+            SaleItems.Add(item);
+            StatusMessage = "Item added to sale.";
+
+            // Clear form
+            SaleProductCode = string.Empty;
+            SaleQuantity = 1;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to add item: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task CreateSalesInvoiceAsync()
+    {
+        if (!SaleItems.Any())
+        {
+            StatusMessage = "No items in sale.";
+            return;
+        }
+
+        try
+        {
+            var invoice = new Invoice
+            {
+                InvoiceNo = $"S{DateTime.Now:yyyyMMddHHmmss}",
+                InvoiceDate = DateTime.Now,
+                InvoiceType = InvoiceType.Sales,
+                CounterpartyName = "Customer",
+                CreatedBy = CurrentUser?.Username,
+                SubTotal = SaleItems.Sum(i => i.TaxableValue),
+                TaxTotal = SaleItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount),
+                GrandTotal = SaleItems.Sum(i => i.LineTotal),
+                Items = SaleItems.ToList()
+            };
+
+            await CreateInvoiceAsync(invoice);
+
+            // Adjust stock
+            foreach (var item in SaleItems)
+            {
+                await _inventoryService.AdjustStockAsync(item.ProductCode!, -item.Quantity, "Sale", invoice.InvoiceNo!, CurrentUser?.Username ?? "System");
+            }
+
+            Invoices.Add(invoice);
+            StatusMessage = $"Sales invoice {invoice.InvoiceNo} created successfully.";
+
+            // Clear sale
+            SaleItems.Clear();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to create invoice: {ex.Message}";
+        }
+    }
+
+    // ===== PURCHASE COMMANDS =====
+    [RelayCommand]
+    public async Task AddPurchaseItemAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PurchaseProductCode) || PurchaseQuantity <= 0)
+        {
+            StatusMessage = "Valid product code and quantity required.";
+            return;
+        }
+
+        try
+        {
+            var product = await _inventoryService.GetProductByCodeAsync(PurchaseProductCode.Trim());
+            if (product == null)
+            {
+                StatusMessage = "Product not found.";
+                return;
+            }
+
+            var item = new InvoiceItem
+            {
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                Description = product.Name,
+                HSNSACCode = product.HSNSACCode,
+                Units = product.Unit,
+                Quantity = PurchaseQuantity,
+                Rate = product.PurchaseRate,
+                TaxableValue = PurchaseQuantity * product.PurchaseRate,
+                CGSTPercent = product.GSTPercent / 2,
+                CGSTAmount = (PurchaseQuantity * product.PurchaseRate * product.GSTPercent / 2) / 100,
+                SGSTPercent = product.GSTPercent / 2,
+                SGSTAmount = (PurchaseQuantity * product.PurchaseRate * product.GSTPercent / 2) / 100,
+                IGSTPercent = 0,
+                IGSTAmount = 0,
+                LineTotal = PurchaseQuantity * product.PurchaseRate + (PurchaseQuantity * product.PurchaseRate * product.GSTPercent) / 100
+            };
+
+            PurchaseItems.Add(item);
+            StatusMessage = "Item added to purchase.";
+
+            // Clear form
+            PurchaseProductCode = string.Empty;
+            PurchaseQuantity = 1;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to add item: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task CreatePurchaseInvoiceAsync()
+    {
+        if (!PurchaseItems.Any())
+        {
+            StatusMessage = "No items in purchase.";
+            return;
+        }
+
+        try
+        {
+            var invoice = new Invoice
+            {
+                InvoiceNo = $"P{DateTime.Now:yyyyMMddHHmmss}",
+                InvoiceDate = DateTime.Now,
+                InvoiceType = InvoiceType.Purchase,
+                CounterpartyName = "Supplier",
+                CreatedBy = CurrentUser?.Username,
+                SubTotal = PurchaseItems.Sum(i => i.TaxableValue),
+                TaxTotal = PurchaseItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount),
+                GrandTotal = PurchaseItems.Sum(i => i.LineTotal),
+                Items = PurchaseItems.ToList()
+            };
+
+            await CreateInvoiceAsync(invoice);
+
+            // Adjust stock
+            foreach (var item in PurchaseItems)
+            {
+                await _inventoryService.AdjustStockAsync(item.ProductCode!, item.Quantity, "Purchase", invoice.InvoiceNo!, CurrentUser?.Username ?? "System");
+            }
+
+            Invoices.Add(invoice);
+            StatusMessage = $"Purchase invoice {invoice.InvoiceNo} created successfully.";
+
+            // Clear purchase
+            PurchaseItems.Clear();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to create invoice: {ex.Message}";
+        }
+    }
+
+    // ===== USER MANAGEMENT COMMANDS =====
+    [RelayCommand]
+    public async Task CreateUserAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewUserUsername) || string.IsNullOrWhiteSpace(NewUserDisplayName) || string.IsNullOrWhiteSpace(NewUserPassword))
+        {
+            StatusMessage = "All fields are required.";
+            return;
+        }
+
+        try
+        {
+            var user = new ApplicationUser
+            {
+                Username = NewUserUsername.Trim(),
+                DisplayName = NewUserDisplayName.Trim(),
+                PasswordHash = PasswordHelper.HashPassword(NewUserPassword),
+                RoleId = SelectedUserRole == "Admin" ? 1 : 2,
+                RoleName = SelectedUserRole,
+                CreatedAt = DateTime.Now
+            };
+
+            await _userRepository.CreateOrUpdateAsync(user);
+            Users.Add(user);
+            StatusMessage = "User created successfully.";
+
+            // Clear form
+            NewUserUsername = string.Empty;
+            NewUserDisplayName = string.Empty;
+            NewUserPassword = string.Empty;
+            SelectedUserRole = "User";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to create user: {ex.Message}";
+        }
+    }
+
     partial void OnSelectedInvoiceChanged(Invoice? value)
     {
         if (value == null)
@@ -353,6 +976,31 @@ public partial class MainWindowViewModel : ViewModelBase
         await LoadInvoicesFromFileAsync(files[0].Path.LocalPath);
     }
 
+    private async Task CreateInvoiceAsync(Invoice invoice)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var tx = conn.BeginTransaction();
+
+        try
+        {
+            await _invoiceRepository.UpsertInvoiceAsync(conn, tx, invoice);
+
+            foreach (var item in invoice.Items ?? [])
+            {
+                item.InvoiceNo = invoice.InvoiceNo;
+                await _invoiceRepository.InsertItemAsync(conn, tx, item);
+            }
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
     private static string SanitizeFileName(string fileName)
     {
         var invalidChars = Path.GetInvalidFileNameChars();
@@ -390,13 +1038,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         StatusMessage = $"PDF generated: {outputPath}";
     }
-
-    [RelayCommand]
-    public void ToggleVendorDetails()
-    {
-        IsVendorDetailsVisible = !IsVendorDetailsVisible;
-    }
-
 
     private void LoadDesignData()
     {

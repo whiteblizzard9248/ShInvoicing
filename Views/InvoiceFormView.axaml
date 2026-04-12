@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:ShInvoicing.Models"
+             x:CompileBindings="False"
+             x:Class="ShInvoicing.Views.InvoiceFormView">
+    <ScrollViewer>
+        <StackPanel Margin="20"
+                    Spacing="10">
+            <TextBlock Text="Add Invoice"
+                       Classes="section-header" />
+            <!-- Invoice Info -->
+            <Grid ColumnDefinitions="Auto,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  ColumnSpacing="10">
+                <TextBlock Text="Invoice No:"
+                           Classes="label" />
+                <TextBox Grid.Column="1"
+                         Text="{Binding InvoiceNo}" />
+                <TextBlock Grid.Row="1"
+                           Text="Date:"
+                           Classes="label" />
+                <DatePicker Grid.Row="1"
+                            Grid.Column="1"
+                            SelectedDate="{Binding InvoiceDate}" />
+                <TextBlock Grid.Row="2"
+                           Text="Customer Name:"
+                           Classes="label" />
+                <TextBox Grid.Row="2"
+                         Grid.Column="1"
+                         Text="{Binding CustomerName}" />
+                <TextBlock Grid.Row="3"
+                           Text="Address:"
+                           Classes="label" />
+                <TextBox Grid.Row="3"
+                         Grid.Column="1"
+                         Text="{Binding CustomerAddress}"
+                         AcceptsReturn="True" />
+            </Grid>
+            <!-- Items -->
+            <TextBlock Text="Items"
+                       Classes="section-header" />
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:InvoiceItem">
+                        <Border Classes="card">
+                            <Grid ColumnDefinitions="2*,*,*,Auto"
+                                  ColumnSpacing="10">
+                                <TextBox Text="{Binding Description}"
+                                         Watermark="Description" />
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding Quantity}"
+                                         Watermark="Qty" />
+                                <TextBox Grid.Column="2"
+                                         Text="{Binding Rate}"
+                                         Watermark="Rate" />
+                                <Button Grid.Column="3"
+                                        Content="X"
+                                        Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Content="Add Item"
+                    Command="{Binding AddItemCommand}"
+                    Classes="secondary" />
+            <!-- Save -->
+            <Button Content="Save Invoice"
+                    Command="{Binding SaveCommand}"
+                    Classes="primary" />
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="Green" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
