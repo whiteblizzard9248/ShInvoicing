@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using QuestPDF.Fluent;
@@ -88,8 +89,8 @@ public class PdfGenerationService
             table.Cell().Padding(5).Column(c =>
             {
                 c.Item().Text("Bill To:").Bold();
-                c.Item().Text(inv.CustomerName);
-                c.Item().Text(inv.CustomerAddress);
+                c.Item().Text(inv.CustomerName ?? string.Empty);
+                c.Item().Text(inv.CustomerAddress ?? string.Empty);
             });
 
             table.Cell().Padding(5).Column(c =>
@@ -102,7 +103,7 @@ public class PdfGenerationService
             table.Cell().Padding(5).Column(c =>
             {
                 c.Item().Text($"Invoice No : {inv.InvoiceNo}");
-                c.Item().Text($"Date : {inv.InvoiceDate:dd.MM.yyyy}");
+                c.Item().Text($"Date : {inv.InvoiceDate?.ToString("dd.MM.yyyy") ?? string.Empty}");
             });
         });
     }
@@ -110,6 +111,8 @@ public class PdfGenerationService
     // ================= ITEMS (MULTI-PAGE SAFE) =================
     private static void BuildItemsTable(IContainer container, Invoice inv)
     {
+        var items = inv.Items ?? new List<InvoiceItem>();
+
         container.Table(table =>
         {
             table.ColumnsDefinition(c =>
@@ -133,11 +136,11 @@ public class PdfGenerationService
                 HeaderCell(header, "Amount");
             });
 
-            foreach (var item in inv.Items)
+            foreach (var item in items)
             {
                 BodyCell(table, item.Description ?? "");
                 BodyCell(table, item.HSNSACCode ?? "");
-                BodyCell(table, item.Units.ToString());
+                BodyCell(table, item.Units ?? "");
                 BodyCell(table, item.Quantity.ToString());
                 BodyCell(table, $"₹ {item.Rate:N2}");
                 BodyCell(table, $"₹ {item.TaxableValue:N2}");
@@ -148,10 +151,11 @@ public class PdfGenerationService
     // ================= TOTALS =================
     private static void BuildTotals(IContainer container, Invoice inv)
     {
-        var taxable = inv.Items.Sum(x => x.TaxableValue);
-        var cgst = inv.Items.Sum(x => x.CGSTAmount);
-        var sgst = inv.Items.Sum(x => x.SGSTAmount);
-        var igst = inv.Items.Sum(x => x.IGSTAmount);
+        var items = inv.Items ?? new List<InvoiceItem>();
+        var taxable = items.Sum(x => x.TaxableValue);
+        var cgst = items.Sum(x => x.CGSTAmount);
+        var sgst = items.Sum(x => x.SGSTAmount);
+        var igst = items.Sum(x => x.IGSTAmount);
         var total = taxable + cgst + sgst + igst;
 
         container.Border(1).Padding(5).Column(col =>

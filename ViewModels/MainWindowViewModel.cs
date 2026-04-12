@@ -899,7 +899,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 CreatedAt = DateTime.Now
             };
 
-            await _userRepository.CreateOrUpdateAsync(user);
+            await _userRepository.AddOrUpdateUserAsync(user);
             Users.Add(user);
             StatusMessage = "User created successfully.";
 

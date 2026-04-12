@@ -16,44 +16,6 @@ public class Role
     public string? Name { get; set; }
 }
 
-public class ApplicationUser
-{
-    public int Id { get; set; }
-    public string? Username { get; set; }
-    public string? DisplayName { get; set; }
-    public string? PasswordHash { get; set; }
-    public int RoleId { get; set; }
-    public string? RoleName { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-public class Product
-{
-    public int Id { get; set; }
-    public string? Code { get; set; }
-    public string? Name { get; set; }
-    public string? Unit { get; set; }
-    public string? HSNSACCode { get; set; }
-    public decimal PurchaseRate { get; set; }
-    public decimal SaleRate { get; set; }
-    public decimal GSTPercent { get; set; }
-    public decimal StockQty { get; set; }
-    public decimal MinStockQty { get; set; }
-}
-
-public class StockTransaction
-{
-    public int Id { get; set; }
-    public int ProductId { get; set; }
-    public string? ProductCode { get; set; }
-    public decimal Quantity { get; set; }
-    public string? TransactionType { get; set; }
-    public string? ReferenceNo { get; set; }
-    public string? CreatedBy { get; set; }
-    public DateTime TransactionDate { get; set; }
-    public string? Remarks { get; set; }
-}
-
 public class Invoice
 {
     public string? InvoiceNo { get; set; }
@@ -79,5 +41,5 @@ public class Invoice
     public string? CustomerGSTIN { get; set; }
     public string? CustomerState { get; set; }
 
-    public List<InvoiceItem> Items { get; set; } = [];
+    public List<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
 }
