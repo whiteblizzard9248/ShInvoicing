@@ -136,6 +136,8 @@ CREATE TABLE IF NOT EXISTS InvoiceItems (
         EnsureColumnExists(connection, "InvoiceItems", "Units", "TEXT");
         EnsureColumnExists(connection, "InvoiceItems", "LineTotal", "REAL");
         EnsureColumnExists(connection, "Products", "MinStockQty", "REAL NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "Products", "IsActive", "INTEGER NOT NULL DEFAULT 1");
+        EnsureColumnExists(connection, "Products", "UpdatedDate", "TEXT");
 
         EnsureSeedData(connection);
     }

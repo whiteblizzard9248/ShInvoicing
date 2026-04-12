@@ -76,6 +76,15 @@ public class ProductRepository
     {
         using var conn = _db.GetConnection();
         await conn.ExecuteAsync("UPDATE Products SET IsActive = 0, UpdatedDate = @UpdatedDate WHERE Id = @Id",
-            new { Id = id, UpdatedDate = DateTime.UtcNow });
+            new { Id = id, UpdatedDate = DateTime.UtcNow.ToString("o") });
+    }
+
+    public async Task<List<StockTransaction>> GetStockTransactionsAsync(int productId)
+    {
+        using var conn = _db.GetConnection();
+        var transactions = await conn.QueryAsync<StockTransaction>(
+            "SELECT * FROM StockTransactions WHERE ProductId = @ProductId ORDER BY TransactionDate DESC",
+            new { ProductId = productId });
+        return transactions.AsList();
     }
 }

@@ -10,397 +10,990 @@
         x:CompileBindings="False"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="ShInvoicing Pharmacy POS">
+        Title="ShInvoicing Pharmacy POS"
+        MinWidth="1100"
+        MinHeight="700">
     <Design.DataContext>
         <vm:MainWindowViewModel />
     </Design.DataContext>
+
     <DockPanel>
-        <!-- Top Navigation Header -->
+        <!-- ============================================================ -->
+        <!--                    TOP NAVIGATION HEADER                      -->
+        <!-- ============================================================ -->
         <Border DockPanel.Dock="Top"
-                Background="#1F2937"
-                Padding="16">
+                Classes="header-bar">
             <Grid ColumnDefinitions="Auto,*,Auto"
                   VerticalAlignment="Center">
-                <TextBlock Text="ShInvoicing Pharmacy"
-                           Foreground="White"
-                           FontSize="18"
-                           FontWeight="SemiBold" />
+                <!-- Brand -->
+                <StackPanel Orientation="Horizontal"
+                            Spacing="10"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="💊"
+                               FontSize="22"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="ShInvoicing"
+                               Foreground="#6366F1"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="Pharmacy"
+                               Foreground="#94A3B8"
+                               FontSize="14"
+                               VerticalAlignment="Center"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <!-- Nav Links -->
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             HorizontalAlignment="Center"
-                            Spacing="12">
-                    <Button Content="Dashboard"
+                            Spacing="4">
+                    <Button Content="📊 Dashboard"
+                            Classes="nav"
                             Command="{Binding ShowDashboardCommand}"
                             IsVisible="{Binding IsAuthenticated}" />
-                    <Button Content="Inventory"
+                    <Button Content="📦 Inventory"
+                            Classes="nav"
                             Command="{Binding ShowInventoryCommand}"
                             IsVisible="{Binding CanUseInventory}" />
-                    <Button Content="Sales"
+                    <Button Content="🛒 Sales"
+                            Classes="nav"
                             Command="{Binding ShowSalesCommand}"
                             IsVisible="{Binding CanUseSales}" />
-                    <Button Content="Purchase"
+                    <Button Content="📥 Purchase"
+                            Classes="nav"
                             Command="{Binding ShowPurchaseCommand}"
                             IsVisible="{Binding CanUsePurchases}" />
-                    <Button Content="Invoices"
+                    <Button Content="📄 Invoices"
+                            Classes="nav"
                             Command="{Binding ShowInvoicesCommand}"
                             IsVisible="{Binding IsAuthenticated}" />
-                    <Button Content="Users"
+                    <Button Content="👥 Users"
+                            Classes="nav"
                             Command="{Binding ShowUsersCommand}"
                             IsVisible="{Binding CanManageUsers}" />
                 </StackPanel>
+
+                <!-- User Info -->
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
-                            Spacing="12">
-                    <TextBlock Text="{Binding CurrentUser.DisplayName}"
-                               Foreground="White"
-                               VerticalAlignment="Center"
-                               FontWeight="SemiBold"
-                               IsVisible="{Binding IsAuthenticated}" />
+                            Spacing="12"
+                            IsVisible="{Binding IsAuthenticated}">
+                    <Border Background="#1E2130"
+                            CornerRadius="20"
+                            Padding="12,6">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <TextBlock Text="👤"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding CurrentUser.DisplayName}"
+                                       Foreground="#E2E8F0"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <TextBlock Text="{Binding CurrentUser.RoleName}"
+                                       Foreground="#6366F1"
+                                       VerticalAlignment="Center"
+                                       FontSize="11"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
                     <Button Content="Logout"
-                            Command="{Binding LogoutCommand}"
-                            IsVisible="{Binding IsAuthenticated}" />
+                            Classes="ghost"
+                            Command="{Binding LogoutCommand}" />
                 </StackPanel>
             </Grid>
         </Border>
-        <!-- Main Content -->
+
+        <!-- ============================================================ -->
+        <!--                       STATUS BAR                              -->
+        <!-- ============================================================ -->
+        <Border DockPanel.Dock="Bottom"
+                Classes="status-bar">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="#94A3B8"
+                           VerticalAlignment="Center"
+                           FontSize="12" />
+                <TextBlock Grid.Column="1"
+                           Text="ShInvoicing v1.0"
+                           Foreground="#475569"
+                           VerticalAlignment="Center"
+                           FontSize="11" />
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!--                      MAIN CONTENT AREA                        -->
+        <!-- ============================================================ -->
         <ScrollViewer>
-            <StackPanel Margin="20"
-                        Spacing="20">
-                <!-- Login -->
-                <Border Background="#F8FAFC"
-                        Padding="24"
-                        CornerRadius="8"
-                        IsVisible="{Binding IsLoginVisible}">
-                    <StackPanel Spacing="16"
-                                MaxWidth="400">
-                        <TextBlock Text="Login to ShInvoicing"
-                                   FontSize="22"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="Default: admin / admin123"
-                                   FontSize="12"
-                                   Foreground="#666" />
-                        <TextBox Watermark="Username"
-                                 Text="{Binding LoginUsername, Mode=TwoWay}" />
-                        <TextBox Watermark="Password"
-                                 PasswordChar="*"
-                                 Text="{Binding LoginPassword, Mode=TwoWay}" />
-                        <Button Content="Login"
-                                Command="{Binding LoginCommand}"
-                                Classes="primary" />
-                        <TextBlock Text="{Binding StatusMessage}"
-                                   Foreground="#DC2626"
-                                   TextWrapping="Wrap"
-                                   FontSize="12" />
-                    </StackPanel>
+            <StackPanel Margin="24"
+                        Spacing="24">
+
+                <!-- ======================================================== -->
+                <!--                        LOGIN                              -->
+                <!-- ======================================================== -->
+                <Border IsVisible="{Binding IsLoginVisible}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="0,80,0,0">
+                    <Border Classes="login-card"
+                            MaxWidth="420"
+                            MinWidth="380">
+                        <StackPanel Spacing="20">
+                            <StackPanel Spacing="6"
+                                        HorizontalAlignment="Center">
+                                <TextBlock Text="💊"
+                                           FontSize="36"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="ShInvoicing"
+                                           FontSize="26"
+                                           FontWeight="Bold"
+                                           Foreground="#6366F1"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="Sign in to your account"
+                                           FontSize="14"
+                                           Foreground="#94A3B8"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+
+                            <Separator Background="#1E2130"
+                                       Height="1" />
+
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Username"
+                                           FontSize="12"
+                                           Foreground="#94A3B8"
+                                           FontWeight="SemiBold" />
+                                <TextBox Watermark="Enter username"
+                                         Text="{Binding LoginUsername, Mode=TwoWay}" />
+
+                                <TextBlock Text="Password"
+                                           FontSize="12"
+                                           Foreground="#94A3B8"
+                                           FontWeight="SemiBold" />
+                                <TextBox Watermark="Enter password"
+                                         PasswordChar="•"
+                                         Text="{Binding LoginPassword, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <Button Content="Sign In"
+                                    Command="{Binding LoginCommand}"
+                                    Classes="primary"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Padding="16,12" />
+
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Foreground="#EF4444"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       HorizontalAlignment="Center" />
+
+                            <Border Background="#1E2130"
+                                    CornerRadius="8"
+                                    Padding="12,8">
+                                <TextBlock Text="Default: admin / admin123"
+                                           FontSize="12"
+                                           Foreground="#64748B"
+                                           HorizontalAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
                 </Border>
-                <!-- Dashboard -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsDashboardVisible}">
-                    <StackPanel Spacing="20">
+
+                <!-- ======================================================== -->
+                <!--                       DASHBOARD                           -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsDashboardVisible}"
+                            Spacing="20">
+                    <!-- Header -->
+                    <StackPanel Spacing="4">
                         <TextBlock Text="Dashboard"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="1*,1*,1*"
-                              ColumnSpacing="16">
-                            <Border Background="#EFF6FF"
-                                    Padding="16"
-                                    CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock Text="Total Invoices"
-                                               FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Invoices.Count}"
-                                               FontSize="28"
-                                               FontWeight="Bold" />
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#FEF3C7"
-                                    Padding="16"
-                                    CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock Text="Products"
-                                               FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Products.Count}"
-                                               FontSize="28"
-                                               FontWeight="Bold" />
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#E0E7FF"
-                                    Padding="16"
-                                    CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock Text="Users"
-                                               FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Users.Count}"
-                                               FontSize="28"
-                                               FontWeight="Bold" />
-                                </StackPanel>
-                            </Border>
-                        </Grid>
+                                   Classes="heading" />
+                        <TextBlock Text="Welcome back — here's your business at a glance"
+                                   Classes="subheading" />
                     </StackPanel>
-                </Border>
-                <!-- Inventory -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsInventoryVisible}">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Product Inventory"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="1*,1*,1*,Auto"
-                              ColumnSpacing="12">
-                            <TextBox Text="{Binding NewProductCode, Mode=TwoWay}"
-                                     Watermark="Code" />
-                            <TextBox Grid.Column="1"
-                                     Text="{Binding NewProductName, Mode=TwoWay}"
-                                     Watermark="Name" />
-                            <TextBox Grid.Column="2"
-                                     Text="{Binding NewProductSaleRate, Mode=TwoWay}"
-                                     Watermark="Price" />
-                            <Button Grid.Column="3"
-                                    Content="Save"
-                                    Command="{Binding SaveProductCommand}" />
-                        </Grid>
-                        <DataGrid ItemsSource="{Binding Products}"
-                                  AutoGenerateColumns="False"
-                                  Height="300"
-                                  IsReadOnly="True"
-                                  x:DataType="models:Product">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Code"
-                                                    Binding="{Binding Code}"
-                                                    Width="100" />
-                                <DataGridTextColumn Header="Name"
-                                                    Binding="{Binding Name}"
-                                                    Width="200" />
-                                <DataGridTextColumn Header="Stock"
-                                                    Binding="{Binding StockQty}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Rate"
-                                                    Binding="{Binding SaleRate}"
-                                                    Width="100" />
-                                <DataGridTextColumn Header="GST"
-                                                    Binding="{Binding GSTPercent}"
-                                                    Width="80" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>
-                </Border>
-                <!-- Sales -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsSalesVisible}">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Sales POS"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="1*,1*,Auto,Auto"
-                              ColumnSpacing="12">
-                            <TextBox Watermark="Product Code"
-                                     Text="{Binding SaleProductCode, Mode=TwoWay}" />
-                            <TextBox Watermark="Qty"
-                                     Text="{Binding SaleQuantity, Mode=TwoWay}" />
-                            <Button Content="Add"
-                                    Command="{Binding AddSaleItemCommand}" />
-                            <Button Content="Complete"
-                                    Command="{Binding CreateSalesInvoiceCommand}"
-                                    Classes="primary" />
-                        </Grid>
-                        <DataGrid ItemsSource="{Binding SaleItems}"
-                                  AutoGenerateColumns="False"
-                                  Height="280"
-                                  IsReadOnly="True"
-                                  x:DataType="models:InvoiceItem">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Code"
-                                                    Binding="{Binding ProductCode}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Name"
-                                                    Binding="{Binding ProductName}"
-                                                    Width="150" />
-                                <DataGridTextColumn Header="Qty"
-                                                    Binding="{Binding Quantity}"
-                                                    Width="60" />
-                                <DataGridTextColumn Header="Rate"
-                                                    Binding="{Binding Rate}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Total"
-                                                    Binding="{Binding LineTotal}"
-                                                    Width="80" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>
-                </Border>
-                <!-- Purchase -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsPurchaseVisible}">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Purchase Invoice"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="1*,1*,Auto,Auto"
-                              ColumnSpacing="12">
-                            <TextBox Watermark="Product Code"
-                                     Text="{Binding PurchaseProductCode, Mode=TwoWay}" />
-                            <TextBox Watermark="Qty"
-                                     Text="{Binding PurchaseQuantity, Mode=TwoWay}" />
-                            <Button Content="Add"
-                                    Command="{Binding AddPurchaseItemCommand}" />
-                            <Button Content="Complete"
-                                    Command="{Binding CreatePurchaseInvoiceCommand}"
-                                    Classes="primary" />
-                        </Grid>
-                        <DataGrid ItemsSource="{Binding PurchaseItems}"
-                                  AutoGenerateColumns="False"
-                                  Height="280"
-                                  IsReadOnly="True"
-                                  x:DataType="models:InvoiceItem">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Code"
-                                                    Binding="{Binding ProductCode}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Name"
-                                                    Binding="{Binding ProductName}"
-                                                    Width="150" />
-                                <DataGridTextColumn Header="Qty"
-                                                    Binding="{Binding Quantity}"
-                                                    Width="60" />
-                                <DataGridTextColumn Header="Rate"
-                                                    Binding="{Binding Rate}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Total"
-                                                    Binding="{Binding LineTotal}"
-                                                    Width="80" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>
-                </Border>
-                <!-- Users -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsUserManagementVisible}">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="User Management"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <Grid ColumnDefinitions="1*,1*,1*,Auto"
-                              ColumnSpacing="12">
-                            <TextBox Watermark="Username"
-                                     Text="{Binding NewUserUsername, Mode=TwoWay}" />
-                            <TextBox Watermark="Name"
-                                     Text="{Binding NewUserDisplayName, Mode=TwoWay}" />
-                            <TextBox Watermark="Password"
-                                     PasswordChar="*"
-                                     Text="{Binding NewUserPassword, Mode=TwoWay}" />
-                            <Button Content="Create"
-                                    Command="{Binding CreateUserCommand}" />
-                        </Grid>
-                        <DataGrid ItemsSource="{Binding Users}"
-                                  AutoGenerateColumns="False"
-                                  Height="300"
-                                  IsReadOnly="True"
-                                  x:DataType="models:ApplicationUser">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Username"
-                                                    Binding="{Binding Username}"
-                                                    Width="120" />
-                                <DataGridTextColumn Header="Name"
-                                                    Binding="{Binding DisplayName}"
-                                                    Width="150" />
-                                <DataGridTextColumn Header="Role"
-                                                    Binding="{Binding RoleName}"
-                                                    Width="100" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>
-                </Border>
-                <!-- Invoices -->
-                <Border Background="#FFFFFF"
-                        Padding="24"
-                        CornerRadius="8"
-                        BorderBrush="#E5E7EB"
-                        BorderThickness="1"
-                        IsVisible="{Binding IsInvoiceListVisible}">
-                    <Grid RowDefinitions="Auto,Auto,*,Auto">
-                        <TextBlock Text="Invoice History"
-                                   FontSize="20"
-                                   FontWeight="SemiBold" />
-                        <TextBox Grid.Row="1"
-                                 Watermark="Search..."
-                                 Text="{Binding SearchQuery, Mode=TwoWay}"
-                                 Margin="0,12,0,0" />
-                        <DataGrid Grid.Row="2"
-                                  ItemsSource="{Binding FilteredInvoices}"
-                                  SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}"
-                                  AutoGenerateColumns="False"
-                                  Height="350"
-                                  Margin="0,12,0,0"
-                                  IsReadOnly="True"
-                                  x:DataType="models:Invoice">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="No"
-                                                    Binding="{Binding InvoiceNo}"
-                                                    Width="120" />
-                                <DataGridTextColumn Header="Type"
-                                                    Binding="{Binding InvoiceType}"
-                                                    Width="80" />
-                                <DataGridTextColumn Header="Date"
-                                                    Binding="{Binding InvoiceDate, StringFormat='dd-MM-yyyy'}"
-                                                    Width="100" />
-                                <DataGridTextColumn Header="Party"
-                                                    Binding="{Binding CounterpartyName}"
-                                                    Width="150" />
-                                <DataGridTextColumn Header="Total"
-                                                    Binding="{Binding GrandTotal}"
-                                                    Width="100" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <StackPanel Grid.Row="3"
+
+                    <!-- Stats Row -->
+                    <Grid ColumnDefinitions="1*,1*,1*,1*"
+                          ColumnSpacing="16">
+                        <!-- Total Invoices -->
+                        <Border Classes="stat-card-blue">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="📄  Total Invoices"
+                                           Classes="stat-label" />
+                                <TextBlock Text="{Binding TotalInvoices}"
+                                           Classes="stat-value" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Products -->
+                        <Border Grid.Column="1"
+                                Classes="stat-card-purple">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="📦  Products"
+                                           Classes="stat-label" />
+                                <TextBlock Text="{Binding TotalProducts}"
+                                           Classes="stat-value" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Users -->
+                        <Border Grid.Column="2"
+                                Classes="stat-card-emerald">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="👥  Users"
+                                           Classes="stat-label" />
+                                <TextBlock Text="{Binding TotalUsers}"
+                                           Classes="stat-value" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Revenue -->
+                        <Border Grid.Column="3"
+                                Classes="stat-card-amber">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="💰  Revenue"
+                                           Classes="stat-label" />
+                                <TextBlock Text="{Binding TotalRevenue, StringFormat='₹{0:N2}'}"
+                                           Classes="stat-value"
+                                           FontSize="26" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Low Stock Alerts -->
+                    <Border Classes="card"
+                            IsVisible="{Binding LowStockProducts.Count}">
+                        <StackPanel Spacing="12">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8">
+                                <TextBlock Text="⚠️"
+                                           FontSize="16"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="Low Stock Alerts"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Foreground="#F59E0B" />
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding LowStockProducts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="models:Product">
+                                        <Border Classes="alert-card"
+                                                Margin="0,0,0,6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Text="{Binding Code}"
+                                                           FontWeight="Bold"
+                                                           Foreground="#F59E0B"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Name}"
+                                                           Margin="12,0"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="#EF4444"
+                                                           FontWeight="Bold">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="Stock: {0} / Min: {1}">
+                                                            <Binding Path="StockQty" />
+                                                            <Binding Path="MinStockQty" />
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ======================================================== -->
+                <!--             INVENTORY — MASTER-DETAIL                     -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsInventoryVisible}"
+                            Spacing="20">
+                    <!-- Header + Actions -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Product Inventory"
+                                       Classes="heading" />
+                            <TextBlock Classes="subheading">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Manage your product catalog — {0} items">
+                                        <Binding Path="Products.Count" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
-                                    HorizontalAlignment="Center"
                                     Spacing="8"
-                                    Margin="0,12,0,0">
-                            <Button Content="Previous"
-                                    Command="{Binding PreviousPageCommand}"
-                                    IsEnabled="{Binding IsPreviousPageEnabled}" />
-                            <TextBlock Text="{Binding PageInfo}"
-                                       VerticalAlignment="Center" />
-                            <Button Content="Next"
-                                    Command="{Binding NextPageCommand}"
-                                    IsEnabled="{Binding IsNextPageEnabled}" />
-                            <Button Content="PDF"
-                                    Command="{Binding GeneratePdfCommand}" />
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding CanEditProducts}">
+                            <Button Content="＋ New Product"
+                                    Classes="primary"
+                                    Command="{Binding NewProductCommand}" />
                         </StackPanel>
                     </Grid>
-                </Border>
+
+                    <!-- Master-Detail Layout -->
+                    <Grid ColumnDefinitions="3*,2*"
+                          ColumnSpacing="20">
+                        <!-- MASTER: Product List -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBox Watermark="🔍 Search products..."
+                                         Text="{Binding ProductSearchQuery, Mode=TwoWay}" />
+
+                                <DataGrid ItemsSource="{Binding FilteredProducts}"
+                                          SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          Height="420"
+                                          IsReadOnly="True"
+                                          x:DataType="models:Product">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Code"
+                                                            Binding="{Binding Code}"
+                                                            Width="90" />
+                                        <DataGridTextColumn Header="Name"
+                                                            Binding="{Binding Name}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="Unit"
+                                                            Binding="{Binding Unit}"
+                                                            Width="60" />
+                                        <DataGridTextColumn Header="Stock"
+                                                            Binding="{Binding StockQty}"
+                                                            Width="70" />
+                                        <DataGridTextColumn Header="Sale ₹"
+                                                            Binding="{Binding SaleRate, StringFormat='{}{0:N2}'}"
+                                                            Width="90" />
+                                        <DataGridTextColumn Header="GST%"
+                                                            Binding="{Binding GSTPercent}"
+                                                            Width="60" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Action buttons below grid -->
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8"
+                                            HorizontalAlignment="Right"
+                                            IsVisible="{Binding CanEditProducts}">
+                                    <Button Content="✏️ Edit"
+                                            Command="{Binding EditProductCommand}"
+                                            Classes="warning" />
+                                    <Button Content="🗑️ Delete"
+                                            Command="{Binding DeleteProductCommand}"
+                                            Classes="danger"
+                                            IsVisible="{Binding CanDeleteProducts}" />
+                                    <Button Content="📋 Stock History"
+                                            Command="{Binding LoadStockTransactionsCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- DETAIL: Product Form -->
+                        <Border Classes="detail-panel"
+                                IsVisible="{Binding IsDetailFormVisible}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="{Binding IsProductNewMode, StringFormat='{}New Product'}"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           IsVisible="{Binding IsProductNewMode}" />
+                                <TextBlock Text="Edit Product"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           IsVisible="{Binding IsProductEditMode}" />
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <!-- Form Fields -->
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                      ColumnDefinitions="Auto,*"
+                                      RowSpacing="12"
+                                      ColumnSpacing="14">
+
+                                    <TextBlock Text="Code"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding EditProductCode, Mode=TwoWay}"
+                                             Watermark="Product code" />
+
+                                    <TextBlock Grid.Row="1"
+                                               Text="Name"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="1"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductName, Mode=TwoWay}"
+                                             Watermark="Product name" />
+
+                                    <TextBlock Grid.Row="2"
+                                               Text="Unit"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="2"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductUnit, Mode=TwoWay}"
+                                             Watermark="PCS, KG, LTR..." />
+
+                                    <TextBlock Grid.Row="3"
+                                               Text="HSN/SAC"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="3"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductHSNSACCode, Mode=TwoWay}"
+                                             Watermark="HSN/SAC code" />
+
+                                    <TextBlock Grid.Row="4"
+                                               Text="Purchase ₹"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="4"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductPurchaseRate, Mode=TwoWay}"
+                                             Watermark="0.00" />
+
+                                    <TextBlock Grid.Row="5"
+                                               Text="Sale ₹"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="5"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductSaleRate, Mode=TwoWay}"
+                                             Watermark="0.00" />
+
+                                    <TextBlock Grid.Row="6"
+                                               Text="GST %"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="6"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductGSTPercent, Mode=TwoWay}"
+                                             Watermark="18" />
+
+                                    <TextBlock Grid.Row="7"
+                                               Text="Stock Qty"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="7"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductStockQty, Mode=TwoWay}"
+                                             Watermark="0" />
+
+                                    <TextBlock Grid.Row="8"
+                                               Text="Min Stock"
+                                               Foreground="#94A3B8"
+                                               VerticalAlignment="Center"
+                                               FontSize="13" />
+                                    <TextBox Grid.Row="8"
+                                             Grid.Column="1"
+                                             Text="{Binding EditProductMinStockQty, Mode=TwoWay}"
+                                             Watermark="0" />
+                                </Grid>
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <!-- Form Actions -->
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="10"
+                                            HorizontalAlignment="Right">
+                                    <Button Content="Cancel"
+                                            Command="{Binding CancelEditCommand}" />
+                                    <Button Content="💾 Save"
+                                            Classes="success"
+                                            Command="{Binding SaveProductCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Stock Transaction History (shown when not editing) -->
+                        <Border Grid.Column="1"
+                                Classes="detail-panel"
+                                IsVisible="{Binding IsStockDetailVisible}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="📋 Stock Transaction History"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+
+                                <DataGrid ItemsSource="{Binding StockTransactions}"
+                                          AutoGenerateColumns="False"
+                                          Height="380"
+                                          IsReadOnly="True"
+                                          x:DataType="models:StockTransaction">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Date"
+                                                            Binding="{Binding TransactionDate, StringFormat='dd-MM-yy HH:mm'}"
+                                                            Width="120" />
+                                        <DataGridTextColumn Header="Type"
+                                                            Binding="{Binding TransactionType}"
+                                                            Width="90" />
+                                        <DataGridTextColumn Header="Qty"
+                                                            Binding="{Binding Quantity}"
+                                                            Width="70" />
+                                        <DataGridTextColumn Header="Ref"
+                                                            Binding="{Binding ReferenceNo}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="By"
+                                                            Binding="{Binding CreatedBy}"
+                                                            Width="80" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ======================================================== -->
+                <!--                     SALES POS                             -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsSalesVisible}"
+                            Spacing="20">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Sales — Point of Sale"
+                                   Classes="heading" />
+                        <TextBlock Text="Create a new sales invoice"
+                                   Classes="subheading" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="2*,3*"
+                          ColumnSpacing="20">
+                        <!-- Left: Add item form -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Add Item to Cart"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <TextBlock Text="Customer Name"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Walk-in customer"
+                                         Text="{Binding CustomerName, Mode=TwoWay}" />
+
+                                <TextBlock Text="Product Code"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Enter product code"
+                                         Text="{Binding SaleProductCode, Mode=TwoWay}" />
+
+                                <TextBlock Text="Quantity"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="1"
+                                         Text="{Binding SaleQuantity, Mode=TwoWay}" />
+
+                                <Button Content="＋ Add to Cart"
+                                        Classes="primary"
+                                        Command="{Binding AddSaleItemCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right: Cart -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBlock FontSize="16"
+                                           FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="🛒 Cart ({0} items)">
+                                            <Binding Path="SaleItems.Count" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+
+                                <DataGrid ItemsSource="{Binding SaleItems}"
+                                          AutoGenerateColumns="False"
+                                          Height="260"
+                                          IsReadOnly="True"
+                                          x:DataType="models:InvoiceItem">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Code"
+                                                            Binding="{Binding ProductCode}"
+                                                            Width="80" />
+                                        <DataGridTextColumn Header="Name"
+                                                            Binding="{Binding ProductName}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="Qty"
+                                                            Binding="{Binding Quantity}"
+                                                            Width="50" />
+                                        <DataGridTextColumn Header="Rate"
+                                                            Binding="{Binding Rate, StringFormat='{}{0:N2}'}"
+                                                            Width="80" />
+                                        <DataGridTextColumn Header="Total"
+                                                            Binding="{Binding LineTotal, StringFormat='{}{0:N2}'}"
+                                                            Width="90" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Totals -->
+                                <Border Background="#0D0F15"
+                                        CornerRadius="8"
+                                        Padding="16,12">
+                                    <Grid RowDefinitions="Auto,Auto,Auto"
+                                          ColumnDefinitions="*,Auto"
+                                          RowSpacing="6">
+                                        <TextBlock Text="Subtotal"
+                                                   Foreground="#94A3B8" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding SaleCartTotal, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="SemiBold" />
+
+                                        <TextBlock Grid.Row="1"
+                                                   Text="GST"
+                                                   Foreground="#94A3B8" />
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Text="{Binding SaleCartGst, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="SemiBold" />
+
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Grand Total"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   Foreground="#10B981" />
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.Column="1"
+                                                   Text="{Binding SaleCartGrand, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   Foreground="#10B981" />
+                                    </Grid>
+                                </Border>
+
+                                <Button Content="✅ Complete Sale"
+                                        Classes="success"
+                                        Command="{Binding CreateSalesInvoiceCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Padding="16,12" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ======================================================== -->
+                <!--                      PURCHASE                             -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsPurchaseVisible}"
+                            Spacing="20">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Purchase — Inward Stock"
+                                   Classes="heading" />
+                        <TextBlock Text="Create a purchase invoice and add stock"
+                                   Classes="subheading" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="2*,3*"
+                          ColumnSpacing="20">
+                        <!-- Left: Add item form -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Add Purchase Item"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <TextBlock Text="Supplier Name"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Supplier name"
+                                         Text="{Binding SupplierName, Mode=TwoWay}" />
+
+                                <TextBlock Text="Product Code"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Enter product code"
+                                         Text="{Binding PurchaseProductCode, Mode=TwoWay}" />
+
+                                <TextBlock Text="Quantity"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="1"
+                                         Text="{Binding PurchaseQuantity, Mode=TwoWay}" />
+
+                                <Button Content="＋ Add to Purchase"
+                                        Classes="primary"
+                                        Command="{Binding AddPurchaseItemCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right: Cart -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBlock FontSize="16"
+                                           FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="📥 Purchase Items ({0})">
+                                            <Binding Path="PurchaseItems.Count" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+
+                                <DataGrid ItemsSource="{Binding PurchaseItems}"
+                                          AutoGenerateColumns="False"
+                                          Height="260"
+                                          IsReadOnly="True"
+                                          x:DataType="models:InvoiceItem">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Code"
+                                                            Binding="{Binding ProductCode}"
+                                                            Width="80" />
+                                        <DataGridTextColumn Header="Name"
+                                                            Binding="{Binding ProductName}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="Qty"
+                                                            Binding="{Binding Quantity}"
+                                                            Width="50" />
+                                        <DataGridTextColumn Header="Rate"
+                                                            Binding="{Binding Rate, StringFormat='{}{0:N2}'}"
+                                                            Width="80" />
+                                        <DataGridTextColumn Header="Total"
+                                                            Binding="{Binding LineTotal, StringFormat='{}{0:N2}'}"
+                                                            Width="90" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Totals -->
+                                <Border Background="#0D0F15"
+                                        CornerRadius="8"
+                                        Padding="16,12">
+                                    <Grid RowDefinitions="Auto,Auto,Auto"
+                                          ColumnDefinitions="*,Auto"
+                                          RowSpacing="6">
+                                        <TextBlock Text="Subtotal"
+                                                   Foreground="#94A3B8" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding PurchaseCartTotal, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="SemiBold" />
+
+                                        <TextBlock Grid.Row="1"
+                                                   Text="GST"
+                                                   Foreground="#94A3B8" />
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Text="{Binding PurchaseCartGst, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="SemiBold" />
+
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Grand Total"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   Foreground="#818CF8" />
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.Column="1"
+                                                   Text="{Binding PurchaseCartGrand, StringFormat='₹{0:N2}'}"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   Foreground="#818CF8" />
+                                    </Grid>
+                                </Border>
+
+                                <Button Content="✅ Complete Purchase"
+                                        Classes="primary"
+                                        Command="{Binding CreatePurchaseInvoiceCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Padding="16,12" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ======================================================== -->
+                <!--              USER MANAGEMENT — MASTER-DETAIL              -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsUserManagementVisible}"
+                            Spacing="20">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="User Management"
+                                   Classes="heading" />
+                        <TextBlock Classes="subheading">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Manage system users — {0} registered">
+                                    <Binding Path="Users.Count" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="3*,2*"
+                          ColumnSpacing="20">
+                        <!-- MASTER: User List -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Registered Users"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+
+                                <DataGrid ItemsSource="{Binding Users}"
+                                          SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          Height="360"
+                                          IsReadOnly="True"
+                                          x:DataType="models:ApplicationUser">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Username"
+                                                            Binding="{Binding Username}"
+                                                            Width="120" />
+                                        <DataGridTextColumn Header="Display Name"
+                                                            Binding="{Binding DisplayName}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="Role"
+                                                            Binding="{Binding RoleName}"
+                                                            Width="80" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- DETAIL: Create User Form -->
+                        <Border Classes="detail-panel">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Create New User"
+                                           FontSize="18"
+                                           FontWeight="Bold" />
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <TextBlock Text="Username"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Username"
+                                         Text="{Binding NewUserUsername, Mode=TwoWay}" />
+
+                                <TextBlock Text="Display Name"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Full name"
+                                         Text="{Binding NewUserDisplayName, Mode=TwoWay}" />
+
+                                <TextBlock Text="Password"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <TextBox Watermark="Password"
+                                         PasswordChar="•"
+                                         Text="{Binding NewUserPassword, Mode=TwoWay}" />
+
+                                <TextBlock Text="Role"
+                                           FontSize="12"
+                                           Foreground="#94A3B8" />
+                                <ComboBox ItemsSource="{Binding AvailableRoles}"
+                                          SelectedItem="{Binding SelectedUserRole, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+
+                                <Separator Background="#2D3348"
+                                           Height="1" />
+
+                                <Button Content="✅ Create User"
+                                        Classes="success"
+                                        Command="{Binding CreateUserCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ======================================================== -->
+                <!--                     INVOICES LIST                         -->
+                <!-- ======================================================== -->
+                <StackPanel IsVisible="{Binding IsInvoiceListVisible}"
+                            Spacing="20">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Invoice History"
+                                   Classes="heading" />
+                        <TextBlock Text="{Binding FilteredInvoiceCountSummary}"
+                                   Classes="subheading" />
+                    </StackPanel>
+
+                    <Border Classes="card">
+                        <Grid RowDefinitions="Auto,*,Auto"
+                              RowSpacing="14">
+                            <TextBox Watermark="🔍 Search invoices..."
+                                     Text="{Binding SearchQuery, Mode=TwoWay}" />
+
+                            <DataGrid Grid.Row="1"
+                                      ItemsSource="{Binding FilteredInvoices}"
+                                      SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}"
+                                      AutoGenerateColumns="False"
+                                      Height="380"
+                                      IsReadOnly="True"
+                                      x:DataType="models:Invoice">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Invoice No"
+                                                        Binding="{Binding InvoiceNo}"
+                                                        Width="130" />
+                                    <DataGridTextColumn Header="Type"
+                                                        Binding="{Binding InvoiceType}"
+                                                        Width="80" />
+                                    <DataGridTextColumn Header="Date"
+                                                        Binding="{Binding InvoiceDate, StringFormat='dd-MM-yyyy'}"
+                                                        Width="100" />
+                                    <DataGridTextColumn Header="Party"
+                                                        Binding="{Binding CounterpartyName}"
+                                                        Width="*" />
+                                    <DataGridTextColumn Header="Total ₹"
+                                                        Binding="{Binding GrandTotal, StringFormat='{}{0:N2}'}"
+                                                        Width="110" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Row="2"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="10">
+                                <Button Content="◀ Previous"
+                                        Command="{Binding PreviousPageCommand}"
+                                        IsEnabled="{Binding IsPreviousPageEnabled}" />
+                                <Border Background="#1E2130"
+                                        CornerRadius="8"
+                                        Padding="14,8">
+                                    <TextBlock Text="{Binding PageInfo}"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               FontSize="13" />
+                                </Border>
+                                <Button Content="Next ▶"
+                                        Command="{Binding NextPageCommand}"
+                                        IsEnabled="{Binding IsNextPageEnabled}" />
+                                <Button Content="📄 Generate PDF"
+                                        Classes="primary"
+                                        Command="{Binding GeneratePdfCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
-        <!-- Status Bar -->
-        <Border DockPanel.Dock="Bottom"
-                Background="#E5E7EB"
-                Height="32"
-                Padding="12">
-            <TextBlock Text="{Binding StatusMessage}"
-                       Foreground="#0F172A"
-                       VerticalAlignment="Center"
-                       FontSize="12" />
-        </Border>
     </DockPanel>
 </Window>

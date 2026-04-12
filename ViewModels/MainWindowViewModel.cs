@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -54,6 +54,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool CanUseSales => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
     public bool CanUseInventory => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
     public bool CanUsePurchases => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
+    public bool CanEditProducts => CurrentUser?.RoleName == "Admin" || CurrentUser?.RoleName == "Staff";
+    public bool CanDeleteProducts => CurrentUser?.RoleName == "Admin";
 
     // ===== DASHBOARD PROPERTIES =====
     [ObservableProperty]
@@ -67,6 +69,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private decimal totalRevenue;
+
+    [ObservableProperty]
+    private ObservableCollection<Product> lowStockProducts = [];
 
     // ===== INVOICE MANAGEMENT PROPERTIES =====
     [ObservableProperty]
@@ -167,6 +172,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private int saleQuantity = 1;
 
+    [ObservableProperty]
+    private decimal saleCartTotal = 0;
+
+    [ObservableProperty]
+    private decimal saleCartGst = 0;
+
+    [ObservableProperty]
+    private decimal saleCartGrand = 0;
+
+    [ObservableProperty]
+    private string customerName = string.Empty;
+
     // ===== PURCHASE PROPERTIES =====
     [ObservableProperty]
     private ObservableCollection<InvoiceItem> purchaseItems = [];
@@ -177,6 +194,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private int purchaseQuantity = 1;
 
+    [ObservableProperty]
+    private decimal purchaseCartTotal = 0;
+
+    [ObservableProperty]
+    private decimal purchaseCartGst = 0;
+
+    [ObservableProperty]
+    private decimal purchaseCartGrand = 0;
+
+    [ObservableProperty]
+    private string supplierName = string.Empty;
+
     // ===== INVENTORY & POS PROPERTIES =====
     [ObservableProperty]
     private ObservableCollection<Product> products = [];
@@ -185,14 +214,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private Product? selectedProduct;
 
     [ObservableProperty]
-    private string productCode = string.Empty;
+    private string productSearchQuery = string.Empty;
 
     [ObservableProperty]
-    private string productName = string.Empty;
+    private ObservableCollection<Product> filteredProducts = [];
 
-    [ObservableProperty]
-    private decimal productPrice = 0;
-
+    // ===== NEW PRODUCT FORM (Full Fields) =====
     [ObservableProperty]
     private string newProductCode = string.Empty;
 
@@ -200,34 +227,66 @@ public partial class MainWindowViewModel : ViewModelBase
     private string newProductName = string.Empty;
 
     [ObservableProperty]
+    private string newProductUnit = "PCS";
+
+    [ObservableProperty]
+    private string newProductHSNCode = string.Empty;
+
+    [ObservableProperty]
+    private decimal newProductPurchaseRate = 0;
+
+    [ObservableProperty]
     private decimal newProductSaleRate = 0;
 
     [ObservableProperty]
-    private int productStock = 0;
+    private decimal newProductGSTPercent = 18;
 
     [ObservableProperty]
-    private int productMinStock = 5;
+    private decimal newProductStockQty = 0;
 
     [ObservableProperty]
-    private ObservableCollection<Product> saleCart = [];
+    private decimal newProductMinStockQty = 0;
+
+    // ===== PRODUCT EDITING PROPERTIES =====
+    [ObservableProperty]
+    private bool isProductEditMode = false;
 
     [ObservableProperty]
-    private ObservableCollection<Product> purchaseCart = [];
+    private bool isProductNewMode = false;
 
     [ObservableProperty]
-    private decimal saleCartTotal = 0;
+    private string editProductCode = string.Empty;
 
     [ObservableProperty]
-    private decimal saleCartGst = 0;
+    private string editProductName = string.Empty;
 
     [ObservableProperty]
-    private decimal purchaseCartTotal = 0;
+    private decimal editProductSaleRate = 0;
 
     [ObservableProperty]
-    private string customerName = string.Empty;
+    private decimal editProductPurchaseRate = 0;
 
     [ObservableProperty]
-    private string supplierName = string.Empty;
+    private string editProductUnit = "PCS";
+
+    [ObservableProperty]
+    private string editProductHSNSACCode = string.Empty;
+
+    [ObservableProperty]
+    private decimal editProductGSTPercent = 18;
+
+    [ObservableProperty]
+    private decimal editProductStockQty = 0;
+
+    [ObservableProperty]
+    private decimal editProductMinStockQty = 0;
+
+    // ===== STOCK TRANSACTION PROPERTIES =====
+    [ObservableProperty]
+    private ObservableCollection<StockTransaction> stockTransactions = [];
+
+    [ObservableProperty]
+    private bool isStockDetailVisible = false;
 
     // ===== USER MANAGEMENT PROPERTIES =====
     [ObservableProperty]
@@ -243,16 +302,41 @@ public partial class MainWindowViewModel : ViewModelBase
     private string newUserDisplayName = string.Empty;
 
     [ObservableProperty]
-    private string newUsername = string.Empty;
-
-    [ObservableProperty]
     private string newUserPassword = string.Empty;
 
     [ObservableProperty]
     private string selectedUserRole = "User";
 
+    [ObservableProperty]
+    private ObservableCollection<string> availableRoles = ["Admin", "Staff", "User"];
+
+    // ===== LEGACY PROPERTIES (kept for compatibility) =====
+    [ObservableProperty]
+    private string productCode = string.Empty;
+
+    [ObservableProperty]
+    private string productName = string.Empty;
+
+    [ObservableProperty]
+    private decimal productPrice = 0;
+
+    [ObservableProperty]
+    private int productStock = 0;
+
+    [ObservableProperty]
+    private int productMinStock = 5;
+
+    [ObservableProperty]
+    private string newUsername = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<Product> saleCart = [];
+
+    [ObservableProperty]
+    private ObservableCollection<Product> purchaseCart = [];
+
     // ===== TAX CALCULATION CONSTANTS =====
-    private const decimal GST_RATE = 0.18m;  // 18% GST for India
+    private const decimal GST_RATE = 0.18m;
 
     public string VendorDetailsToggleText => true ? "Hide Vendor Details" : "Show Vendor Details";
 
@@ -261,6 +345,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public decimal TotalCGST => InvoiceItems.Sum(i => i.CGSTAmount);
     public decimal TotalSGST => InvoiceItems.Sum(i => i.SGSTAmount);
     public decimal TotalIGST => InvoiceItems.Sum(i => i.IGSTAmount);
+
+    public bool IsDetailFormVisible => IsProductEditMode || IsProductNewMode;
 
 
 
@@ -313,18 +399,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 }
 
                 await _invoiceRepository.SaveVendorSettingsAsync(conn, tx, loadedSettings);
-
-                // ✅ Commit ONLY if everything succeeds
                 tx.Commit();
             }
             catch
             {
-                // ❌ Rollback on failure
                 tx.Rollback();
                 throw;
             }
 
-            // 🔹 Load from DB
             var invoices = await _invoiceRepository.GetInvoicesAsync();
             Invoices = new ObservableCollection<Invoice>(invoices);
 
@@ -352,9 +434,9 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanUseSales));
         OnPropertyChanged(nameof(CanUseInventory));
         OnPropertyChanged(nameof(CanUsePurchases));
+        OnPropertyChanged(nameof(CanEditProducts));
+        OnPropertyChanged(nameof(CanDeleteProducts));
     }
-
-
 
     partial void OnSearchQueryChanged(string value)
     {
@@ -376,6 +458,42 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ApplyInvoiceItemsPaging();
         InvoiceItemsHeader = $"Invoice Items ({InvoiceItemCount}) {InvoiceItemsPageInfo}";
+    }
+
+    partial void OnProductSearchQueryChanged(string value)
+    {
+        ApplyProductFilter();
+    }
+
+    partial void OnIsProductEditModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsDetailFormVisible));
+    }
+
+    partial void OnIsProductNewModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsDetailFormVisible));
+    }
+
+    private void ApplyProductFilter()
+    {
+        var query = ProductSearchQuery?.Trim();
+        IEnumerable<Product> filtered;
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            filtered = Products;
+        }
+        else
+        {
+            filtered = Products.Where(p =>
+                (!string.IsNullOrWhiteSpace(p.Code) && p.Code.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(p.Name) && p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(p.HSNSACCode) && p.HSNSACCode.Contains(query, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        FilteredProducts = new ObservableCollection<Product>(filtered);
     }
 
     private void ApplyFilterAndPaging()
@@ -476,10 +594,9 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     // ===== NAVIGATION COMMANDS =====
-    [RelayCommand]
-    public void ShowDashboard()
+    private void HideAllPanels()
     {
-        IsDashboardVisible = true;
+        IsDashboardVisible = false;
         IsInventoryVisible = false;
         IsSalesVisible = false;
         IsPurchaseVisible = false;
@@ -488,61 +605,46 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    public void ShowDashboard()
+    {
+        HideAllPanels();
+        IsDashboardVisible = true;
+    }
+
+    [RelayCommand]
     public async Task ShowInventoryAsync()
     {
-        IsDashboardVisible = false;
+        HideAllPanels();
         IsInventoryVisible = true;
-        IsSalesVisible = false;
-        IsPurchaseVisible = false;
-        IsUserManagementVisible = false;
-        IsInvoiceListVisible = false;
-
         await LoadProductsAsync();
     }
 
     [RelayCommand]
     public void ShowSales()
     {
-        IsDashboardVisible = false;
-        IsInventoryVisible = false;
+        HideAllPanels();
         IsSalesVisible = true;
-        IsPurchaseVisible = false;
-        IsUserManagementVisible = false;
-        IsInvoiceListVisible = false;
     }
 
     [RelayCommand]
     public void ShowPurchase()
     {
-        IsDashboardVisible = false;
-        IsInventoryVisible = false;
-        IsSalesVisible = false;
+        HideAllPanels();
         IsPurchaseVisible = true;
-        IsUserManagementVisible = false;
-        IsInvoiceListVisible = false;
     }
 
     [RelayCommand]
     public async Task ShowUsersAsync()
     {
-        IsDashboardVisible = false;
-        IsInventoryVisible = false;
-        IsSalesVisible = false;
-        IsPurchaseVisible = false;
+        HideAllPanels();
         IsUserManagementVisible = true;
-        IsInvoiceListVisible = false;
-
         await LoadUsersAsync();
     }
 
     [RelayCommand]
     public void ShowInvoices()
     {
-        IsDashboardVisible = false;
-        IsInventoryVisible = false;
-        IsSalesVisible = false;
-        IsPurchaseVisible = false;
-        IsUserManagementVisible = false;
+        HideAllPanels();
         IsInvoiceListVisible = true;
     }
 
@@ -596,6 +698,11 @@ public partial class MainWindowViewModel : ViewModelBase
             var products = await _inventoryService.GetAllProductsAsync();
             Products = new ObservableCollection<Product>(products);
             TotalProducts = Products.Count;
+            FilteredProducts = new ObservableCollection<Product>(Products);
+
+            // Low stock alerts
+            LowStockProducts = new ObservableCollection<Product>(
+                products.Where(p => p.StockQty <= p.MinStockQty && p.MinStockQty > 0));
 
             var users = await _userRepository.GetUsersAsync();
             Users = new ObservableCollection<ApplicationUser>(users);
@@ -610,6 +717,7 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = $"Failed to load dashboard data: {ex.Message}";
         }
     }
+
     private async Task LoadProductsAsync()
     {
         try
@@ -620,6 +728,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 Products.Add(product);
             }
+            ApplyProductFilter();
+
+            // Update low stock
+            LowStockProducts = new ObservableCollection<Product>(
+                productsList.Where(p => p.StockQty <= p.MinStockQty && p.MinStockQty > 0));
         }
         catch (Exception ex)
         {
@@ -646,9 +759,28 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // ===== PRODUCT COMMANDS =====
     [RelayCommand]
+    public void NewProduct()
+    {
+        SelectedProduct = null;
+        IsProductEditMode = false;
+        IsProductNewMode = true;
+
+        // Clear the edit form for new entry
+        EditProductCode = string.Empty;
+        EditProductName = string.Empty;
+        EditProductUnit = "PCS";
+        EditProductHSNSACCode = string.Empty;
+        EditProductPurchaseRate = 0;
+        EditProductSaleRate = 0;
+        EditProductGSTPercent = 18;
+        EditProductStockQty = 0;
+        EditProductMinStockQty = 0;
+    }
+
+    [RelayCommand]
     public async Task SaveProductAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewProductCode) || string.IsNullOrWhiteSpace(NewProductName))
+        if (string.IsNullOrWhiteSpace(EditProductCode) || string.IsNullOrWhiteSpace(EditProductName))
         {
             StatusMessage = "Product code and name are required.";
             return;
@@ -656,29 +788,189 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var product = new Product
+            if (IsProductNewMode)
             {
-                Code = NewProductCode.Trim(),
-                Name = NewProductName.Trim(),
-                SaleRate = NewProductSaleRate,
-                GSTPercent = GST_RATE * 100,
-                StockQty = 0,
-                MinStockQty = 0
-            };
+                // Creating new product
+                var product = new Product
+                {
+                    Code = EditProductCode.Trim(),
+                    Name = EditProductName.Trim(),
+                    Unit = EditProductUnit,
+                    HSNSACCode = EditProductHSNSACCode,
+                    PurchaseRate = EditProductPurchaseRate,
+                    SaleRate = EditProductSaleRate,
+                    GSTPercent = EditProductGSTPercent,
+                    StockQty = EditProductStockQty,
+                    MinStockQty = EditProductMinStockQty
+                };
 
-            await _inventoryService.AddProductAsync(product);
-            Products.Add(product);
-            StatusMessage = "Product saved successfully.";
+                await _inventoryService.AddProductAsync(product);
+                StatusMessage = "Product created successfully.";
+            }
+            else if (IsProductEditMode && SelectedProduct != null)
+            {
+                // Updating existing product
+                SelectedProduct.Code = EditProductCode.Trim();
+                SelectedProduct.Name = EditProductName.Trim();
+                SelectedProduct.Unit = EditProductUnit;
+                SelectedProduct.HSNSACCode = EditProductHSNSACCode;
+                SelectedProduct.PurchaseRate = EditProductPurchaseRate;
+                SelectedProduct.SaleRate = EditProductSaleRate;
+                SelectedProduct.GSTPercent = EditProductGSTPercent;
+                SelectedProduct.StockQty = EditProductStockQty;
+                SelectedProduct.MinStockQty = EditProductMinStockQty;
 
-            // Clear form
-            NewProductCode = string.Empty;
-            NewProductName = string.Empty;
-            NewProductSaleRate = 0;
+                await _inventoryService.UpdateProductAsync(SelectedProduct);
+                StatusMessage = "Product updated successfully.";
+            }
+
+            await LoadProductsAsync();
+            IsProductEditMode = false;
+            IsProductNewMode = false;
+            ClearEditForm();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Failed to save product: {ex.Message}";
         }
+    }
+
+    [RelayCommand]
+    public void EditProduct()
+    {
+        if (SelectedProduct == null)
+        {
+            StatusMessage = "Please select a product to edit.";
+            return;
+        }
+
+        IsProductNewMode = false;
+        IsProductEditMode = true;
+        EditProductCode = SelectedProduct.Code ?? string.Empty;
+        EditProductName = SelectedProduct.Name ?? string.Empty;
+        EditProductSaleRate = SelectedProduct.SaleRate;
+        EditProductPurchaseRate = SelectedProduct.PurchaseRate;
+        EditProductUnit = SelectedProduct.Unit ?? "PCS";
+        EditProductHSNSACCode = SelectedProduct.HSNSACCode ?? string.Empty;
+        EditProductGSTPercent = SelectedProduct.GSTPercent;
+        EditProductStockQty = SelectedProduct.StockQty;
+        EditProductMinStockQty = SelectedProduct.MinStockQty;
+    }
+
+    [RelayCommand]
+    public async Task UpdateProductAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditProductCode) || string.IsNullOrWhiteSpace(EditProductName))
+        {
+            StatusMessage = "Product code and name are required.";
+            return;
+        }
+
+        try
+        {
+            if (SelectedProduct == null) return;
+
+            SelectedProduct.Code = EditProductCode.Trim();
+            SelectedProduct.Name = EditProductName.Trim();
+            SelectedProduct.SaleRate = EditProductSaleRate;
+            SelectedProduct.PurchaseRate = EditProductPurchaseRate;
+            SelectedProduct.Unit = EditProductUnit;
+            SelectedProduct.HSNSACCode = EditProductHSNSACCode;
+            SelectedProduct.GSTPercent = EditProductGSTPercent;
+            SelectedProduct.MinStockQty = EditProductMinStockQty;
+
+            await _inventoryService.UpdateProductAsync(SelectedProduct);
+            await LoadProductsAsync();
+            StatusMessage = "Product updated successfully.";
+            IsProductEditMode = false;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to update product: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteProductAsync()
+    {
+        if (SelectedProduct == null)
+        {
+            StatusMessage = "Please select a product to delete.";
+            return;
+        }
+
+        try
+        {
+            await _inventoryService.DeleteProductAsync(SelectedProduct.Id);
+            await LoadProductsAsync();
+            StatusMessage = "Product deleted successfully.";
+            SelectedProduct = null;
+            IsProductEditMode = false;
+            IsProductNewMode = false;
+            ClearEditForm();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to delete product: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void CancelEdit()
+    {
+        IsProductEditMode = false;
+        IsProductNewMode = false;
+        ClearEditForm();
+    }
+
+    [RelayCommand]
+    public async Task LoadStockTransactionsAsync()
+    {
+        if (SelectedProduct == null)
+        {
+            StockTransactions.Clear();
+            IsStockDetailVisible = false;
+            return;
+        }
+
+        try
+        {
+            var transactions = await _inventoryService.GetStockTransactionsAsync(SelectedProduct.Id);
+            StockTransactions = new ObservableCollection<StockTransaction>(transactions);
+            IsStockDetailVisible = true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load stock transactions: {ex.Message}";
+        }
+    }
+
+    private void ClearEditForm()
+    {
+        EditProductCode = string.Empty;
+        EditProductName = string.Empty;
+        EditProductSaleRate = 0;
+        EditProductPurchaseRate = 0;
+        EditProductUnit = "PCS";
+        EditProductHSNSACCode = string.Empty;
+        EditProductGSTPercent = 18;
+        EditProductStockQty = 0;
+        EditProductMinStockQty = 0;
+    }
+
+    // ===== SALE TOTALS =====
+    private void RecalcSaleTotals()
+    {
+        SaleCartTotal = SaleItems.Sum(i => i.TaxableValue);
+        SaleCartGst = SaleItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount);
+        SaleCartGrand = SaleItems.Sum(i => i.LineTotal);
+    }
+
+    private void RecalcPurchaseTotals()
+    {
+        PurchaseCartTotal = PurchaseItems.Sum(i => i.TaxableValue);
+        PurchaseCartGst = PurchaseItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount);
+        PurchaseCartGrand = PurchaseItems.Sum(i => i.LineTotal);
     }
 
     // ===== SALES COMMANDS =====
@@ -726,15 +1018,26 @@ public partial class MainWindowViewModel : ViewModelBase
             };
 
             SaleItems.Add(item);
-            StatusMessage = "Item added to sale.";
+            RecalcSaleTotals();
+            StatusMessage = $"Added {product.Name} x{SaleQuantity} to sale.";
 
-            // Clear form
             SaleProductCode = string.Empty;
             SaleQuantity = 1;
         }
         catch (Exception ex)
         {
             StatusMessage = $"Failed to add item: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void RemoveSaleItem(InvoiceItem? item)
+    {
+        if (item != null)
+        {
+            SaleItems.Remove(item);
+            RecalcSaleTotals();
+            StatusMessage = "Item removed from sale.";
         }
     }
 
@@ -754,7 +1057,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 InvoiceNo = $"S{DateTime.Now:yyyyMMddHHmmss}",
                 InvoiceDate = DateTime.Now,
                 InvoiceType = InvoiceType.Sales,
-                CounterpartyName = "Customer",
+                CounterpartyName = string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in Customer" : CustomerName,
                 CreatedBy = CurrentUser?.Username,
                 SubTotal = SaleItems.Sum(i => i.TaxableValue),
                 TaxTotal = SaleItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount),
@@ -764,7 +1067,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
             await CreateInvoiceAsync(invoice);
 
-            // Adjust stock
             foreach (var item in SaleItems)
             {
                 await _inventoryService.AdjustStockAsync(item.ProductCode!, -item.Quantity, "Sale", invoice.InvoiceNo!, CurrentUser?.Username ?? "System");
@@ -773,8 +1075,9 @@ public partial class MainWindowViewModel : ViewModelBase
             Invoices.Add(invoice);
             StatusMessage = $"Sales invoice {invoice.InvoiceNo} created successfully.";
 
-            // Clear sale
             SaleItems.Clear();
+            RecalcSaleTotals();
+            CustomerName = string.Empty;
         }
         catch (Exception ex)
         {
@@ -821,15 +1124,26 @@ public partial class MainWindowViewModel : ViewModelBase
             };
 
             PurchaseItems.Add(item);
-            StatusMessage = "Item added to purchase.";
+            RecalcPurchaseTotals();
+            StatusMessage = $"Added {product.Name} x{PurchaseQuantity} to purchase.";
 
-            // Clear form
             PurchaseProductCode = string.Empty;
             PurchaseQuantity = 1;
         }
         catch (Exception ex)
         {
             StatusMessage = $"Failed to add item: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void RemovePurchaseItem(InvoiceItem? item)
+    {
+        if (item != null)
+        {
+            PurchaseItems.Remove(item);
+            RecalcPurchaseTotals();
+            StatusMessage = "Item removed from purchase.";
         }
     }
 
@@ -849,7 +1163,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 InvoiceNo = $"P{DateTime.Now:yyyyMMddHHmmss}",
                 InvoiceDate = DateTime.Now,
                 InvoiceType = InvoiceType.Purchase,
-                CounterpartyName = "Supplier",
+                CounterpartyName = string.IsNullOrWhiteSpace(SupplierName) ? "Supplier" : SupplierName,
                 CreatedBy = CurrentUser?.Username,
                 SubTotal = PurchaseItems.Sum(i => i.TaxableValue),
                 TaxTotal = PurchaseItems.Sum(i => i.CGSTAmount + i.SGSTAmount + i.IGSTAmount),
@@ -859,7 +1173,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
             await CreateInvoiceAsync(invoice);
 
-            // Adjust stock
             foreach (var item in PurchaseItems)
             {
                 await _inventoryService.AdjustStockAsync(item.ProductCode!, item.Quantity, "Purchase", invoice.InvoiceNo!, CurrentUser?.Username ?? "System");
@@ -868,8 +1181,9 @@ public partial class MainWindowViewModel : ViewModelBase
             Invoices.Add(invoice);
             StatusMessage = $"Purchase invoice {invoice.InvoiceNo} created successfully.";
 
-            // Clear purchase
             PurchaseItems.Clear();
+            RecalcPurchaseTotals();
+            SupplierName = string.Empty;
         }
         catch (Exception ex)
         {
@@ -889,12 +1203,19 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
+            var roleId = SelectedUserRole switch
+            {
+                "Admin" => 1,
+                "Staff" => 2,
+                _ => 3
+            };
+
             var user = new ApplicationUser
             {
                 Username = NewUserUsername.Trim(),
                 DisplayName = NewUserDisplayName.Trim(),
                 PasswordHash = PasswordHelper.HashPassword(NewUserPassword),
-                RoleId = SelectedUserRole == "Admin" ? 1 : 2,
+                RoleId = roleId,
                 RoleName = SelectedUserRole,
                 CreatedAt = DateTime.Now
             };
@@ -903,7 +1224,6 @@ public partial class MainWindowViewModel : ViewModelBase
             Users.Add(user);
             StatusMessage = "User created successfully.";
 
-            // Clear form
             NewUserUsername = string.Empty;
             NewUserDisplayName = string.Empty;
             NewUserPassword = string.Empty;
@@ -938,7 +1258,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         InvoiceItemCount = InvoiceItems.Count;
         IsInvoiceItemsEmpty = InvoiceItems.Count == 0;
-        InvoiceItemsCurrentPage = 1; // Reset to first page
+        InvoiceItemsCurrentPage = 1;
         ApplyInvoiceItemsPaging();
 
         StatusMessage = $"Loaded {InvoiceItems.Count} items for invoice {value.InvoiceNo}";
@@ -1043,7 +1363,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         StatusMessage = "Design-Time Preview Active";
 
-        // 1. Populate Vendor Settings (Reflecting rows 1-5 of your Invoices sheet)
         VendorSettings = new VendorSettings
         {
             VendorName = "Test 123",
@@ -1056,7 +1375,6 @@ public partial class MainWindowViewModel : ViewModelBase
             Email = "emaail@example.com"
         };
 
-        // 2. Populate Sample Invoice (Reflecting row 8 of your Invoices sheet)
         var mockInvoice = new Invoice
         {
             InvoiceNo = "007/2022-23",
@@ -1064,32 +1382,28 @@ public partial class MainWindowViewModel : ViewModelBase
             CustomerName = "Customer ABC",
             CustomerAddress = "Address Line 3\nAddress Line 5\nCity, State ZIP",
             GrandTotal = 47200,
-
-            // 3. Populate Sample Items (Reflecting the 'Invoice Items' sheet)
             Items =
-        [
-            new InvoiceItem
-            {
-                InvoiceNo = "007/2022-23",
-                Description = "39 CENTER MEDIAN BOARDS ONE MONTH DISPLAY CHARGES (32 LIT AND 7 NONLIT BOARDS)",
-                HSNSACCode = "998361",
-                Quantity = 39,
-                Rate = 40000,
-                TaxableValue = 40000,
-                CGSTAmount = 3600,
-                SGSTAmount = 3600,
-                IGSTAmount = 0
-            }
-        ]
+            [
+                new InvoiceItem
+                {
+                    InvoiceNo = "007/2022-23",
+                    Description = "39 CENTER MEDIAN BOARDS ONE MONTH DISPLAY CHARGES (32 LIT AND 7 NONLIT BOARDS)",
+                    HSNSACCode = "998361",
+                    Quantity = 39,
+                    Rate = 40000,
+                    TaxableValue = 40000,
+                    CGSTAmount = 3600,
+                    SGSTAmount = 3600,
+                    IGSTAmount = 0
+                }
+            ]
         };
 
-        // 4. Update Collections
         Invoices.Clear();
         Invoices.Add(mockInvoice);
 
         ApplyFilterAndPaging();
 
-        // Set as selected to trigger the DataGrid to fill via OnSelectedInvoiceChanged
         SelectedInvoice = mockInvoice;
     }
 }

@@ -119,4 +119,19 @@ public class InventoryService
     {
         await _productRepository.AddOrUpdateProductAsync(product);
     }
+
+    public async Task UpdateProductAsync(Product product)
+    {
+        await _productRepository.AddOrUpdateProductAsync(product);
+    }
+
+    public async Task DeleteProductAsync(int productId)
+    {
+        await _productRepository.DeleteProductAsync(productId);
+    }
+
+    public async Task<List<StockTransaction>> GetStockTransactionsAsync(int productId)
+    {
+        return await _productRepository.GetStockTransactionsAsync(productId);
+    }
 }

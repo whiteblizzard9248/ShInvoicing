@@ -1,0 +1,342 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================ -->
+    <!--       ShInvoicing Premium Dark Theme          -->
+    <!-- ============================================ -->
+
+    <!-- Window Background -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="#0F1117" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="FontFamily" Value="Inter, Segoe UI, sans-serif" />
+    </Style>
+
+    <!-- ===== SCROLLVIEWER ===== -->
+    <Style Selector="ScrollViewer">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- ===== TEXT BLOCKS ===== -->
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="#E2E8F0" />
+    </Style>
+
+    <Style Selector="TextBlock.heading">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#F1F5F9" />
+    </Style>
+
+    <Style Selector="TextBlock.subheading">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+
+    <Style Selector="TextBlock.badge">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#0F1117" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style Selector="TextBlock.stat-value">
+        <Setter Property="FontSize" Value="32" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#F8FAFC" />
+    </Style>
+
+    <Style Selector="TextBlock.stat-label">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+
+    <!-- ===== TEXTBOX ===== -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="#1E2130" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="BorderBrush" Value="#2D3348" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style Selector="TextBox:focus">
+        <Setter Property="BorderBrush" Value="#6366F1" />
+    </Style>
+
+    <Style Selector="TextBox:pointerover">
+        <Setter Property="BorderBrush" Value="#4338CA" />
+    </Style>
+
+    <!-- ===== COMBOBOX ===== -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="#1E2130" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="BorderBrush" Value="#2D3348" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!-- ===== BUTTONS ===== -->
+    <!-- Default button -->
+    <Style Selector="Button">
+        <Setter Property="Background" Value="#1E2130" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="BorderBrush" Value="#2D3348" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <Style Selector="Button:pointerover">
+        <Setter Property="Background" Value="#2D3348" />
+        <Setter Property="BorderBrush" Value="#6366F1" />
+    </Style>
+
+    <Style Selector="Button:pressed">
+        <Setter Property="Background" Value="#3730A3" />
+    </Style>
+
+    <Style Selector="Button:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <!-- Primary accent button -->
+    <Style Selector="Button.primary">
+        <Setter Property="Background" Value="#6366F1" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Button.primary:pointerover">
+        <Setter Property="Background" Value="#818CF8" />
+    </Style>
+
+    <Style Selector="Button.primary:pressed">
+        <Setter Property="Background" Value="#4F46E5" />
+    </Style>
+
+    <!-- Success button -->
+    <Style Selector="Button.success">
+        <Setter Property="Background" Value="#059669" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Button.success:pointerover">
+        <Setter Property="Background" Value="#10B981" />
+    </Style>
+
+    <!-- Danger button -->
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="#DC2626" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Button.danger:pointerover">
+        <Setter Property="Background" Value="#EF4444" />
+    </Style>
+
+    <Style Selector="Button.danger:pressed">
+        <Setter Property="Background" Value="#B91C1C" />
+    </Style>
+
+    <!-- Warning/Amber button -->
+    <Style Selector="Button.warning">
+        <Setter Property="Background" Value="#D97706" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Button.warning:pointerover">
+        <Setter Property="Background" Value="#F59E0B" />
+    </Style>
+
+    <!-- Nav button style -->
+    <Style Selector="Button.nav">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="#94A3B8" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style Selector="Button.nav:pointerover">
+        <Setter Property="Background" Value="#1E2130" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+    </Style>
+
+    <Style Selector="Button.nav:pressed">
+        <Setter Property="Background" Value="#2D3348" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+
+    <!-- Ghost/icon button -->
+    <Style Selector="Button.ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+
+    <Style Selector="Button.ghost:pointerover">
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="Background" Value="#1E2130" />
+    </Style>
+
+    <!-- ===== DATAGRID ===== -->
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="#141722" />
+        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="BorderBrush" Value="#1E2130" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="#1E2130" />
+        <Setter Property="RowBackground" Value="Transparent" />
+    </Style>
+
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background" Value="#1A1D27" />
+        <Setter Property="Foreground" Value="#94A3B8" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="SeparatorBrush" Value="#2D3348" />
+    </Style>
+
+    <Style Selector="DataGridRow">
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="#1E2946" />
+    </Style>
+
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="#1E3A5F" />
+    </Style>
+
+    <Style Selector="DataGridCell">
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!-- ===== CARD BORDERS ===== -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="#141722" />
+        <Setter Property="BorderBrush" Value="#1E2130" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="24" />
+    </Style>
+
+    <Style Selector="Border.card-dark">
+        <Setter Property="Background" Value="#0D0F15" />
+        <Setter Property="BorderBrush" Value="#1E2130" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <!-- Stat cards with gradient-like tints -->
+    <Style Selector="Border.stat-card-blue">
+        <Setter Property="Background" Value="#0F172A" />
+        <Setter Property="BorderBrush" Value="#1E3A5F" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <Style Selector="Border.stat-card-purple">
+        <Setter Property="Background" Value="#1A0F2E" />
+        <Setter Property="BorderBrush" Value="#3B1D6E" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <Style Selector="Border.stat-card-emerald">
+        <Setter Property="Background" Value="#0F2922" />
+        <Setter Property="BorderBrush" Value="#065F46" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <Style Selector="Border.stat-card-amber">
+        <Setter Property="Background" Value="#2A1F0A" />
+        <Setter Property="BorderBrush" Value="#92400E" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <Style Selector="Border.stat-card-rose">
+        <Setter Property="Background" Value="#2A0F16" />
+        <Setter Property="BorderBrush" Value="#9F1239" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+    </Style>
+
+    <!-- Low stock alert card -->
+    <Style Selector="Border.alert-card">
+        <Setter Property="Background" Value="#2A1F0A" />
+        <Setter Property="BorderBrush" Value="#92400E" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+
+    <!-- Detail form panel -->
+    <Style Selector="Border.detail-panel">
+        <Setter Property="Background" Value="#161927" />
+        <Setter Property="BorderBrush" Value="#2D3348" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="24" />
+    </Style>
+
+    <!-- Separator -->
+    <Style Selector="Separator">
+        <Setter Property="Background" Value="#1E2130" />
+        <Setter Property="Height" Value="1" />
+    </Style>
+
+    <!-- ===== HEADER BAR ===== -->
+    <Style Selector="Border.header-bar">
+        <Setter Property="Background" Value="#0D0F15" />
+        <Setter Property="BorderBrush" Value="#1E2130" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="20,12" />
+    </Style>
+
+    <!-- ===== STATUS BAR ===== -->
+    <Style Selector="Border.status-bar">
+        <Setter Property="Background" Value="#0D0F15" />
+        <Setter Property="BorderBrush" Value="#1E2130" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="16,8" />
+    </Style>
+
+    <!-- ===== LOGIN CARD ===== -->
+    <Style Selector="Border.login-card">
+        <Setter Property="Background" Value="#141722" />
+        <Setter Property="BorderBrush" Value="#2D3348" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="40,36" />
+    </Style>
+
+</Styles>
